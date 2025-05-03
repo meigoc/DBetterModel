@@ -1,0 +1,9 @@
+name: DBetterModel
+authors: ['The DenizenScript Team', '0TickPulse', 'heypr', 'Ignaacioo']
+version: 1.0
+main: net.openproject.dbettermodel.DBetterModel
+depend: [Denizen, BetterModel]
+
+api-version: '1.13'
+
+softdepend: []

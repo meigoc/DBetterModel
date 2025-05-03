@@ -1,0 +1,6 @@
+[submodule "lib"]
+	path = lib
+	url = https://github.com/DenizenScript/Depenizen-Lib
+[submodule "docs"]
+	path = docs
+	url = git@github.com:0tickpulse/megizen-docs.git
