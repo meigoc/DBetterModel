@@ -8,6 +8,7 @@ import com.denizenscript.denizencore.objects.Fetchable;
 import com.denizenscript.denizencore.objects.Mechanism;
 import com.denizenscript.denizencore.objects.ObjectTag;
 import com.denizenscript.denizencore.objects.core.ElementTag;
+import com.denizenscript.denizencore.objects.core.MapTag;
 import com.denizenscript.denizencore.tags.Attribute;
 import com.denizenscript.denizencore.tags.ObjectTagProcessor;
 import com.denizenscript.denizencore.tags.TagContext;
@@ -204,25 +205,6 @@ public class BMBoneTag implements ObjectTag, Adjustable {
     static {
         // <--[mechanism]
         // @object BMBoneTag
-        // @name item
-        // @input ItemTag
-        // @plugin DBetterModel
-        // @description
-        // Sets the item that bone uses.
-        //
-        // -->
-        tagProcessor.registerMechanism("item", false, ItemTag.class, (object, mech, value) -> {
-            ItemStack stack = value.getItemStack();
-            TransformedItemStack tis = new TransformedItemStack(
-                    new Vector3f(0,0,0),
-                    new Vector3f(1f,1f,1f),
-                    stack
-            );
-            object.bone.itemStack(BonePredicate.TRUE, tis);
-        });
-
-        // <--[mechanism]
-        // @object BMBoneTag
         // @name scale
         // @input LocationTag
         // @plugin DBetterModel
@@ -244,23 +226,41 @@ public class BMBoneTag implements ObjectTag, Adjustable {
 
         // <--[mechanism]
         // @object BMBoneTag
-        // @name offset
-        // @input LocationTag
+        // @name item
+        // @input MapTag
         // @plugin DBetterModel
         // @description
-        // Sets the offset of the bone.
+        // Sets the item that bone uses.
         //
         // -->
-        tagProcessor.registerMechanism("offset", false, LocationTag.class, (object, mech, value) -> {
-            Vector3f offset = new Vector3f(
-                    (float) value.getX(),
-                    (float) value.getY(),
-                    (float) value.getZ()
+        tagProcessor.registerMechanism("item", false, MapTag.class, (object, mech, map) -> {
+            ObjectTag itemObj = map.getObject("item");
+            if (!(itemObj instanceof ItemTag itemTag)) {
+                Debug.echoError("'item' key must be a valid ItemTag.");
+                return;
+            }
+
+            ObjectTag offsetObj = map.getObject("offset");
+            Vector3f offset = new Vector3f(0, 0, 0);
+
+            if (offsetObj != null) {
+                if (!(offsetObj instanceof LocationTag loc)) {
+                    Debug.echoError("'offset' key must be a LocationTag.");
+                    return;
+                }
+                offset = new Vector3f(
+                        (float) loc.getX(),
+                        (float) loc.getY(),
+                        (float) loc.getZ()
+                );
+            }
+
+            TransformedItemStack tis = new TransformedItemStack(
+                    offset,
+                    new Vector3f(1f, 1f, 1f),
+                    itemTag.getItemStack()
             );
-            object.bone.addAnimationMovementModifier(
-                    BonePredicate.of(false, b -> true),
-                    mov -> mov.transform().set(offset)
-            );
+            object.getBone().itemStack(BonePredicate.TRUE, tis);
         });
     }
 
