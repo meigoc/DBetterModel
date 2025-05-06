@@ -219,7 +219,7 @@ public class BMBoneTag implements ObjectTag, Adjustable {
                     (float)value.getZ());
 
             object.bone.addAnimationMovementModifier(
-                    BonePredicate.of(false, b -> true),
+                    BonePredicate.of(BonePredicate.State.NOT_SET, b -> true),
                     mov -> mov.scale().set(scale)
             );
         });
@@ -241,25 +241,28 @@ public class BMBoneTag implements ObjectTag, Adjustable {
             }
 
             ObjectTag offsetObj = map.getObject("offset");
-            Vector3f offset = new Vector3f(0, 0, 0);
-
+            Vector3f localOffset = new Vector3f(0f, 0f, 0f);
             if (offsetObj != null) {
                 if (!(offsetObj instanceof LocationTag loc)) {
                     Debug.echoError("'offset' key must be a LocationTag.");
                     return;
                 }
-                offset = new Vector3f(
+                localOffset.set(
                         (float) loc.getX(),
                         (float) loc.getY(),
                         (float) loc.getZ()
                 );
             }
 
+            Vector3f globalOffset = new Vector3f(0f, 0f, 0f);
+
             TransformedItemStack tis = new TransformedItemStack(
-                    offset,
+                    globalOffset,
+                    localOffset,
                     new Vector3f(1f, 1f, 1f),
                     itemTag.getItemStack()
             );
+
             object.getBone().itemStack(BonePredicate.TRUE, tis);
         });
     }

@@ -102,7 +102,7 @@ public class BMEntityTag implements ObjectTag, Adjustable {
     @Override public boolean isUnique() { return true; }
     @Override public String identify() {
         return PREFIX + "@"
-                + tracker.source().getUniqueId();
+                + tracker.sourceEntity().getUniqueId();
     }
     @Override public String identifySimple() { return identify(); }
     @Override public Object getJavaObject() { return tracker; }
@@ -124,7 +124,7 @@ public class BMEntityTag implements ObjectTag, Adjustable {
         //
         // -->
         tagProcessor.registerTag(EntityFormObject.class, "base_entity", (attr, obj) ->
-                EntityTag.valueOf(obj.tracker.source().getUniqueId().toString(), attr.context)
+                EntityTag.valueOf(obj.tracker.sourceEntity().getUniqueId().toString(), attr.context)
         );
 
         // <--[tag]

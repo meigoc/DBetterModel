@@ -51,11 +51,11 @@ public class BMModelCommand extends AbstractCommand {
 
         Entity entity = entityTag.entity;
         if (!(entity instanceof LivingEntity)) {
-            Debug.echoError("Сущность должна быть живым существом");
+            Debug.echoError("Entity must be a living entity");
             return;
         }
         if (model == null) {
-            Debug.echoError("Не указана модель");
+            Debug.echoError("Model is not specified");
             return;
         }
         if (remove) {
@@ -71,12 +71,12 @@ public class BMModelCommand extends AbstractCommand {
 
         EntityTracker tracker = EntityTracker.tracker(entity);
         if (tracker == null) {
-            Debug.echoError("Не удалось создать трекер модели.");
+            Debug.echoError("Failed to create model tracker");
             return;
         }
         RenderInstance inst = tracker.getInstance();
         if (inst == null) {
-            Debug.echoError("Не удалось получить экземпляр модели.");
+            Debug.echoError("Failed to get model instance");
             return;
         }
 

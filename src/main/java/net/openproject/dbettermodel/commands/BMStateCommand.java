@@ -6,6 +6,7 @@ import com.denizenscript.denizencore.scripts.ScriptEntry;
 import com.denizenscript.denizencore.scripts.commands.AbstractCommand;
 import com.denizenscript.denizencore.scripts.commands.generator.*;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
+import kr.toxicity.model.api.animation.AnimationIterator;
 import kr.toxicity.model.api.animation.AnimationModifier;
 import kr.toxicity.model.api.tracker.EntityTracker;
 import org.bukkit.entity.Entity;
@@ -40,23 +41,22 @@ public class BMStateCommand extends AbstractCommand {
                                    @ArgName("state")  @ArgPrefixed ElementTag animName,
                                    @ArgName("loop")   @ArgPrefixed ElementTag loopMode,
                                    @ArgName("speed")  @ArgDefaultText("1.0") @ArgPrefixed ElementTag speedTag,
-                                   @ArgName("remove") @ArgPrefixed @ArgDefaultText("false") ElementTag removeTag
+                                   @ArgName("remove") boolean remove
     ) {
         Entity e = entityTag.getBukkitEntity();
         if (!(e instanceof LivingEntity)) {
-            Debug.echoError("Сущность должна быть живым существом");
+            Debug.echoError("The entity must be a living entity");
             return;
         }
         EntityTracker tracker = EntityTracker.tracker(e);
         if (tracker == null) {
-            Debug.echoError("R сущности не прикреплена модель BetterModel");
+            Debug.echoError("The entity does not have a BetterModel attached");
             return;
         }
 
         String animation = animName.asString();
-        String loop  = loopMode.asString().toLowerCase();
+        String loop = loopMode.asString().toLowerCase().trim();
         float  speed = (float) speedTag.asDouble();
-        boolean remove = removeTag.asBoolean();
 
         if (remove) {
             tracker.stopAnimation(animation);
@@ -65,15 +65,25 @@ public class BMStateCommand extends AbstractCommand {
 
         tracker.stopAnimation(animation);
 
+
         switch (loop) {
             case "once":
-                tracker.animateSingle(animation, new AnimationModifier(0, 0, speed));
+                tracker.animate(animation, AnimationModifier.DEFAULT);
                 break;
             case "loop":
-                tracker.animateLoop(animation, new AnimationModifier(6, 0, speed));
+                AnimationModifier loopType =
+                        new AnimationModifier(
+                                AnimationModifier.DEFAULT.predicate(),
+                                AnimationModifier.DEFAULT.start(),
+                                AnimationModifier.DEFAULT.end(),
+                                AnimationIterator.Type.LOOP,
+                                AnimationModifier.DEFAULT.speed()
+                        );
+
+                tracker.animate(b -> true, animation, loopType, () -> {});
                 break;
             default:
-                Debug.echoError("Параметр loop должен быть 'once' или 'loop'");
+                Debug.echoError("The 'loop' parameter must be either 'once' or 'loop'");
         }
     }
 }
