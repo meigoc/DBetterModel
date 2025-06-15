@@ -9,19 +9,16 @@ import com.denizenscript.denizencore.objects.Mechanism;
 import com.denizenscript.denizencore.objects.ObjectTag;
 import com.denizenscript.denizencore.objects.core.ElementTag;
 import com.denizenscript.denizencore.objects.core.ListTag;
-import com.denizenscript.denizencore.objects.core.MapTag;
 import com.denizenscript.denizencore.tags.Attribute;
 import com.denizenscript.denizencore.tags.ObjectTagProcessor;
 import com.denizenscript.denizencore.tags.TagContext;
 import com.denizenscript.denizencore.utilities.CoreUtilities;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
-import kr.toxicity.model.api.BetterModel;
 import kr.toxicity.model.api.bone.RenderedBone;
 import kr.toxicity.model.api.data.renderer.RenderInstance;
 import kr.toxicity.model.api.tracker.EntityTracker;
 import kr.toxicity.model.api.util.BonePredicate;
 import kr.toxicity.model.api.util.TransformedItemStack;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
@@ -217,10 +214,13 @@ public class BMBoneTag implements ObjectTag, Adjustable {
                     (float)value.getY(),
                     (float)value.getZ());
 
-//            object.bone.addAnimationMovementModifier(
-//                    BonePredicate.of(BonePredicate.State.NOT_SET, b -> true),
-//                    mov -> mov.scale().set(scale)
-//            );
+            object.bone.addAnimationMovementModifier(
+                    BonePredicate.of(BonePredicate.State.NOT_SET, b -> true),
+                    mov -> {
+                        assert mov.scale() != null;
+                        mov.scale().set(scale);
+                    }
+            );
         });
 
         // <--[mechanism]
