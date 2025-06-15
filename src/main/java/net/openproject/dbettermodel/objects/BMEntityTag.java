@@ -58,7 +58,7 @@ public class BMEntityTag implements ObjectTag, Adjustable {
         String uuidPart = lower.substring((PREFIX + "@").length());
         try {
             Entity entity = EntityTag.valueOf(uuidPart, context).getBukkitEntity();
-            EntityTracker tracker = BetterModel.inst().modelManager().tracker(entity);
+            EntityTracker tracker = EntityTracker.tracker(entity);
             if (tracker == null) return null;
             return new BMEntityTag(tracker);
         }
@@ -84,7 +84,7 @@ public class BMEntityTag implements ObjectTag, Adjustable {
 
     /** Получение BMEntity из Bukkit-entity **/
     public BMEntityTag(Entity entity) {
-        this(BetterModel.inst().modelManager().tracker(entity));
+        this(EntityTracker.tracker(entity));
     }
 
     public EntityTracker getTracker() {
@@ -97,16 +97,23 @@ public class BMEntityTag implements ObjectTag, Adjustable {
 
     private String prefix = PREFIX;
 
-    @Override public String getPrefix() { return prefix; }
-    @Override public ObjectTag setPrefix(String s) { prefix = s; return this; }
-    @Override public boolean isUnique() { return true; }
-    @Override public String identify() {
+    @Override
+    public String getPrefix() { return prefix; }
+    @Override
+    public ObjectTag setPrefix(String s) { prefix = s; return this; }
+    @Override
+    public boolean isUnique() { return true; }
+    @Override
+    public String identify() {
         return PREFIX + "@"
-                + tracker.source().getUniqueId();
+                + tracker.sourceEntity().getUniqueId();
     }
-    @Override public String identifySimple() { return identify(); }
-    @Override public Object getJavaObject() { return tracker; }
-    @Override public String toString() { return identify(); }
+    @Override
+    public String identifySimple() { return identify(); }
+    @Override
+    public Object getJavaObject() { return tracker; }
+    @Override
+    public String toString() { return identify(); }
 
     // ——————————————————————————
     // 4) Tags registration
@@ -124,7 +131,7 @@ public class BMEntityTag implements ObjectTag, Adjustable {
         //
         // -->
         tagProcessor.registerTag(EntityFormObject.class, "base_entity", (attr, obj) ->
-                EntityTag.valueOf(obj.tracker.source().getUniqueId().toString(), attr.context)
+                EntityTag.valueOf(obj.tracker.sourceEntity().getUniqueId().toString(), attr.context)
         );
 
         // <--[tag]

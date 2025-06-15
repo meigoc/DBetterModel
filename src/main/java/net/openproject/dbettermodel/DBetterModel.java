@@ -2,10 +2,13 @@ package net.openproject.dbettermodel;
 
 import com.denizenscript.denizen.Denizen;
 import com.denizenscript.denizencore.DenizenCore;
+import com.denizenscript.denizencore.events.ScriptEvent;
 import com.denizenscript.denizencore.objects.ObjectFetcher;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
 import net.openproject.dbettermodel.commands.BMModelCommand;
 import net.openproject.dbettermodel.commands.BMStateCommand;
+import net.openproject.dbettermodel.events.BMReloadEndEvent;
+import net.openproject.dbettermodel.events.BMReloadStartEvent;
 import net.openproject.dbettermodel.objects.BMBoneTag;
 import net.openproject.dbettermodel.objects.BMEntityTag;
 import net.openproject.dbettermodel.objects.BMModelTag;
@@ -28,6 +31,10 @@ public class DBetterModel extends JavaPlugin {
         ObjectFetcher.registerWithObjectFetcher(BMEntityTag.class, BMEntityTag.tagProcessor);
         ObjectFetcher.registerWithObjectFetcher(BMModelTag.class, BMModelTag.tagProcessor);
         ObjectFetcher.registerWithObjectFetcher(BMBoneTag.class, BMBoneTag.tagProcessor);
+
+        ScriptEvent.registerScriptEvent(BMReloadStartEvent.class);
+        ScriptEvent.registerScriptEvent(BMReloadEndEvent.class);
+
 
         DBetterModelEntityTagExtensions.register();
 

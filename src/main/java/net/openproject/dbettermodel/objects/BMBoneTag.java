@@ -8,18 +8,17 @@ import com.denizenscript.denizencore.objects.Fetchable;
 import com.denizenscript.denizencore.objects.Mechanism;
 import com.denizenscript.denizencore.objects.ObjectTag;
 import com.denizenscript.denizencore.objects.core.ElementTag;
+import com.denizenscript.denizencore.objects.core.ListTag;
 import com.denizenscript.denizencore.tags.Attribute;
 import com.denizenscript.denizencore.tags.ObjectTagProcessor;
 import com.denizenscript.denizencore.tags.TagContext;
 import com.denizenscript.denizencore.utilities.CoreUtilities;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
-import kr.toxicity.model.api.BetterModel;
 import kr.toxicity.model.api.bone.RenderedBone;
 import kr.toxicity.model.api.data.renderer.RenderInstance;
 import kr.toxicity.model.api.tracker.EntityTracker;
 import kr.toxicity.model.api.util.BonePredicate;
 import kr.toxicity.model.api.util.TransformedItemStack;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
@@ -66,12 +65,10 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         if (parts.length < 3) return null;
 
         // parts[0]=entity UUID, parts[1]=model name, parts[2]=bone id
-        EntityTag et = EntityTag.valueOf(parts[0], context);
-        if (et == null || et.getBukkitEntity() == null) return null;
+        EntityTag entityTag = EntityTag.valueOf(parts[0], context);
+        if (entityTag == null || entityTag.getBukkitEntity() == null) return null;
 
-        EntityTracker tracker = BetterModel.inst()
-                .modelManager()
-                .tracker(et.getBukkitEntity());
+        EntityTracker tracker = EntityTracker.tracker(entityTag.getBukkitEntity());
         if (tracker == null) return null;
 
         RenderInstance inst = tracker.getInstance();
@@ -204,25 +201,6 @@ public class BMBoneTag implements ObjectTag, Adjustable {
     static {
         // <--[mechanism]
         // @object BMBoneTag
-        // @name item
-        // @input ItemTag
-        // @plugin DBetterModel
-        // @description
-        // Sets the item that bone uses.
-        //
-        // -->
-        tagProcessor.registerMechanism("item", false, ItemTag.class, (object, mech, value) -> {
-            ItemStack stack = value.getItemStack();
-            TransformedItemStack tis = new TransformedItemStack(
-                    new Vector3f(0,0,0),
-                    new Vector3f(1f,1f,1f),
-                    stack
-            );
-            object.bone.itemStack(BonePredicate.TRUE, tis);
-        });
-
-        // <--[mechanism]
-        // @object BMBoneTag
         // @name scale
         // @input LocationTag
         // @plugin DBetterModel
@@ -237,30 +215,58 @@ public class BMBoneTag implements ObjectTag, Adjustable {
                     (float)value.getZ());
 
             object.bone.addAnimationMovementModifier(
-                    BonePredicate.of(false, b -> true),
-                    mov -> mov.scale().set(scale)
+                    BonePredicate.of(BonePredicate.State.NOT_SET, b -> true),
+                    mov -> {
+                        assert mov.scale() != null;
+                        mov.scale().set(scale);
+                    }
             );
         });
 
         // <--[mechanism]
         // @object BMBoneTag
-        // @name offset
-        // @input LocationTag
+        // @name item
+        // @input ListTag
         // @plugin DBetterModel
         // @description
-        // Sets the offset of the bone.
+        // Sets the item that bone uses (<list[item|offset]>)
         //
         // -->
-        tagProcessor.registerMechanism("offset", false, LocationTag.class, (object, mech, value) -> {
-            Vector3f offset = new Vector3f(
-                    (float) value.getX(),
-                    (float) value.getY(),
-                    (float) value.getZ()
+        tagProcessor.registerMechanism("item", false, ListTag.class, (object, mech, list) -> {
+            if (list.isEmpty()) {
+                Debug.echoError("The ListTag must contain at least one element.");
+                return;
+            }
+
+            ObjectTag itemObj = list.getObject(0);
+            if (!(itemObj instanceof ItemTag itemTag)) {
+                Debug.echoError("'item' key must be a valid ItemTag.");
+                return;
+            }
+
+            Vector3f localOffset = new Vector3f(0f, 0f, 0f);
+
+            if (list.size() > 1) {
+                ObjectTag offsetObj = list.getObject(1);
+                if (!(offsetObj instanceof LocationTag loc)) {
+                    Debug.echoError("'offset' key must be a LocationTag.");
+                    return;
+                }
+                localOffset.set(
+                        (float) loc.getX(),
+                        (float) loc.getY(),
+                        (float) loc.getZ()
+                );
+            }
+
+            Vector3f globalOffset = new Vector3f(0f, 0f, 0f);
+            TransformedItemStack tis = new TransformedItemStack(
+                    globalOffset,
+                    localOffset,
+                    new Vector3f(1f, 1f, 1f),
+                    itemTag.getItemStack()
             );
-            object.bone.addAnimationMovementModifier(
-                    BonePredicate.of(false, b -> true),
-                    mov -> mov.transform().set(offset)
-            );
+            object.getBone().itemStack(BonePredicate.TRUE, tis);
         });
     }
 

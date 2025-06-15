@@ -3,6 +3,15 @@ plugins {
     `maven-publish`
 }
 
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(21)
+}
+
 repositories {
     mavenLocal()
     mavenCentral()

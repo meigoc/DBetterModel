@@ -4,8 +4,11 @@ import com.denizenscript.denizen.objects.EntityTag;
 import com.denizenscript.denizencore.objects.core.ElementTag;
 import com.denizenscript.denizencore.scripts.ScriptEntry;
 import com.denizenscript.denizencore.scripts.commands.AbstractCommand;
-import com.denizenscript.denizencore.scripts.commands.generator.*;
+import com.denizenscript.denizencore.scripts.commands.generator.ArgDefaultText;
+import com.denizenscript.denizencore.scripts.commands.generator.ArgName;
+import com.denizenscript.denizencore.scripts.commands.generator.ArgPrefixed;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
+import kr.toxicity.model.api.animation.AnimationIterator;
 import kr.toxicity.model.api.animation.AnimationModifier;
 import kr.toxicity.model.api.tracker.EntityTracker;
 import org.bukkit.entity.Entity;
@@ -15,65 +18,71 @@ public class BMStateCommand extends AbstractCommand {
 
     public BMStateCommand() {
         setName("bmstate");
-        setSyntax("bmstate entity:<entity> state:<animation> loop:<once|loop> (speed:<#.#>) (remove)");
+        setSyntax("bmstate entity:<entity> state:<animation> (loop:<once|loop|hold>) (speed:<#.#>) (remove) (override)");
         autoCompile();
     }
 
     // <--[command]
     // @Name BMState
-    // @Syntax bmstate [entity:<entity>] [state:<animation>] [loop:<once|loop>] (speed:(#.#) (remove)
+    // @Syntax bmstate [entity:<entity>] [state:<animation>] [loop:<once|loop|hold>] (speed:<#.#>) (remove) (override)
     // @Required 3
-    // @Short Plays a state on a bmentity
+    // @Short Plays a state on a bmentity with optional override and smooth interpolation
     // @Group DBetterModel
     //
     // @Description
-    // Plays a state on a bmentity.
-    //
+    // Plays a state on a bmentity with optional override and smooth interpolation.
     //
     // @Usage
-    // Use to add a model to an entity.
-    // - bmstate entity:<context.entity> state:hi loop:loop
+    // Use to add a model to an entity with custom animation settings.
+    // - bmstate entity:<context.entity> state:hi loop:loop speed:1.5 override
     // -->
 
     public static void autoExecute(ScriptEntry scriptEntry,
                                    @ArgName("entity") @ArgPrefixed EntityTag entityTag,
-                                   @ArgName("state")  @ArgPrefixed ElementTag animName,
-                                   @ArgName("loop")   @ArgPrefixed ElementTag loopMode,
-                                   @ArgName("speed")  @ArgDefaultText("1.0") @ArgPrefixed ElementTag speedTag,
-                                   @ArgName("remove") @ArgPrefixed @ArgDefaultText("false") ElementTag removeTag
+                                   @ArgName("state") @ArgPrefixed ElementTag animName,
+                                   @ArgName("loop") @ArgDefaultText("once") @ArgPrefixed ElementTag loopMode,
+                                   @ArgName("speed") @ArgDefaultText("1.0") @ArgPrefixed ElementTag speedTag,
+                                   @ArgName("remove") boolean remove
     ) {
-        Entity e = entityTag.getBukkitEntity();
-        if (!(e instanceof LivingEntity)) {
-            Debug.echoError("Сущность должна быть живым существом");
+        Entity entity = entityTag.getBukkitEntity();
+        if (!(entity instanceof LivingEntity)) {
+            Debug.echoError("The entity must be a living entity");
             return;
         }
-        EntityTracker tracker = EntityTracker.tracker(e);
+        EntityTracker tracker = EntityTracker.tracker(entity);
         if (tracker == null) {
-            Debug.echoError("R сущности не прикреплена модель BetterModel");
+            Debug.echoError("The entity does not have a BetterModel attached");
             return;
         }
 
         String animation = animName.asString();
-        String loop  = loopMode.asString().toLowerCase();
-        float  speed = (float) speedTag.asDouble();
-        boolean remove = removeTag.asBoolean();
+        String loop = loopMode.asString().toLowerCase().trim();
+        float speed = (float) speedTag.asDouble();
 
         if (remove) {
             tracker.stopAnimation(animation);
             return;
         }
 
-        tracker.stopAnimation(animation);
+//        Supplier<Float> dynamicSpeed = () -> {
+//            return 1.0f + (System.currentTimeMillis() % 10000) / 5000f;
+//        };
+//        AnimationModifier.SpeedModifier sm = new AnimationModifier.SpeedModifier(dynamicSpeed);
 
-        switch (loop) {
-            case "once":
-                tracker.animateSingle(animation, new AnimationModifier(0, 0, speed));
-                break;
-            case "loop":
-                tracker.animateLoop(animation, new AnimationModifier(6, 0, speed));
-                break;
-            default:
-                Debug.echoError("Параметр loop должен быть 'once' или 'loop'");
-        }
+        AnimationIterator.Type type = switch (loop) {
+            case "loop" -> AnimationIterator.Type.LOOP;
+            case "hold" -> AnimationIterator.Type.HOLD_ON_LAST;
+            default -> AnimationIterator.Type.PLAY_ONCE;
+        };
+
+        AnimationModifier modifier = new AnimationModifier(
+                AnimationModifier.DEFAULT.predicate(),
+                AnimationModifier.DEFAULT.start(),
+                AnimationModifier.DEFAULT.end(),
+                type,
+                speed
+        );
+
+        tracker.animate(animation, modifier);
     }
 }
