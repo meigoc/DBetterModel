@@ -34,7 +34,7 @@ public class BMStateCommand extends AbstractCommand {
     //
     // @Usage
     // Use to add a model to an entity with custom animation settings.
-    // - bmstate entity:<context.entity> state:hi loop:loop speed:1.5 override smooth
+    // - bmstate entity:<context.entity> state:hi loop:loop speed:1.5 override
     // -->
 
     public static void autoExecute(ScriptEntry scriptEntry,
