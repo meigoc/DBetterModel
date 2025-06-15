@@ -8,6 +8,7 @@ import com.denizenscript.denizencore.objects.Fetchable;
 import com.denizenscript.denizencore.objects.Mechanism;
 import com.denizenscript.denizencore.objects.ObjectTag;
 import com.denizenscript.denizencore.objects.core.ElementTag;
+import com.denizenscript.denizencore.objects.core.ListTag;
 import com.denizenscript.denizencore.objects.core.MapTag;
 import com.denizenscript.denizencore.tags.Attribute;
 import com.denizenscript.denizencore.tags.ObjectTagProcessor;
@@ -67,12 +68,10 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         if (parts.length < 3) return null;
 
         // parts[0]=entity UUID, parts[1]=model name, parts[2]=bone id
-        EntityTag et = EntityTag.valueOf(parts[0], context);
-        if (et == null || et.getBukkitEntity() == null) return null;
+        EntityTag entityTag = EntityTag.valueOf(parts[0], context);
+        if (entityTag == null || entityTag.getBukkitEntity() == null) return null;
 
-        EntityTracker tracker = BetterModel.inst()
-                .modelManager()
-                .tracker(et.getBukkitEntity());
+        EntityTracker tracker = EntityTracker.tracker(entityTag.getBukkitEntity());
         if (tracker == null) return null;
 
         RenderInstance inst = tracker.getInstance();
@@ -218,31 +217,37 @@ public class BMBoneTag implements ObjectTag, Adjustable {
                     (float)value.getY(),
                     (float)value.getZ());
 
-            object.bone.addAnimationMovementModifier(
-                    BonePredicate.of(BonePredicate.State.NOT_SET, b -> true),
-                    mov -> mov.scale().set(scale)
-            );
+//            object.bone.addAnimationMovementModifier(
+//                    BonePredicate.of(BonePredicate.State.NOT_SET, b -> true),
+//                    mov -> mov.scale().set(scale)
+//            );
         });
 
         // <--[mechanism]
         // @object BMBoneTag
         // @name item
-        // @input MapTag
+        // @input ListTag
         // @plugin DBetterModel
         // @description
-        // Sets the item that bone uses.
+        // Sets the item that bone uses (<list[item|offset]>)
         //
         // -->
-        tagProcessor.registerMechanism("item", false, MapTag.class, (object, mech, map) -> {
-            ObjectTag itemObj = map.getObject("item");
+        tagProcessor.registerMechanism("item", false, ListTag.class, (object, mech, list) -> {
+            if (list.isEmpty()) {
+                Debug.echoError("The ListTag must contain at least one element.");
+                return;
+            }
+
+            ObjectTag itemObj = list.getObject(0);
             if (!(itemObj instanceof ItemTag itemTag)) {
                 Debug.echoError("'item' key must be a valid ItemTag.");
                 return;
             }
 
-            ObjectTag offsetObj = map.getObject("offset");
             Vector3f localOffset = new Vector3f(0f, 0f, 0f);
-            if (offsetObj != null) {
+
+            if (list.size() > 1) {
+                ObjectTag offsetObj = list.getObject(1);
                 if (!(offsetObj instanceof LocationTag loc)) {
                     Debug.echoError("'offset' key must be a LocationTag.");
                     return;
@@ -255,14 +260,12 @@ public class BMBoneTag implements ObjectTag, Adjustable {
             }
 
             Vector3f globalOffset = new Vector3f(0f, 0f, 0f);
-
             TransformedItemStack tis = new TransformedItemStack(
                     globalOffset,
                     localOffset,
                     new Vector3f(1f, 1f, 1f),
                     itemTag.getItemStack()
             );
-
             object.getBone().itemStack(BonePredicate.TRUE, tis);
         });
     }

@@ -12,7 +12,6 @@ import com.denizenscript.denizencore.tags.ObjectTagProcessor;
 import com.denizenscript.denizencore.tags.TagContext;
 import com.denizenscript.denizencore.utilities.CoreUtilities;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
-import kr.toxicity.model.api.BetterModel;
 import kr.toxicity.model.api.bone.RenderedBone;
 import kr.toxicity.model.api.data.renderer.RenderInstance;
 import kr.toxicity.model.api.tracker.EntityTracker;
@@ -62,8 +61,7 @@ public class BMModelTag implements ObjectTag, Adjustable {
 
         EntityTag entityTag = EntityTag.valueOf(parts[0], context);
         if (entityTag == null || entityTag.getBukkitEntity() == null) return null;
-
-        EntityTracker tracker = BetterModel.inst().modelManager().tracker(entityTag.getBukkitEntity());
+        EntityTracker tracker = EntityTracker.tracker(entityTag.getBukkitEntity());
         if (tracker == null) return null;
 
         RenderInstance inst = tracker.getInstance();
