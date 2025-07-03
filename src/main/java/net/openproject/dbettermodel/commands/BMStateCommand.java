@@ -49,7 +49,9 @@ public class BMStateCommand extends AbstractCommand {
             Debug.echoError("The entity must be a living entity");
             return;
         }
-        EntityTracker tracker = EntityTracker.tracker(entity);
+        // fixed: 'tracker(org.bukkit.entity.@org.jetbrains.annotations.NotNull Entity)' is deprecated and marked for removal
+        EntityTrackerRegistry registry = EntityTrackerRegistry.registry(entity);
+        EntityTracker tracker = registry.first()
         if (tracker == null) {
             Debug.echoError("The entity does not have a BetterModel attached");
             return;
