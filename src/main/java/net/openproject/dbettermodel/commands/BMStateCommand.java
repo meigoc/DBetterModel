@@ -11,30 +11,33 @@ import com.denizenscript.denizencore.utilities.debugging.Debug;
 import kr.toxicity.model.api.animation.AnimationIterator;
 import kr.toxicity.model.api.animation.AnimationModifier;
 import kr.toxicity.model.api.tracker.EntityTracker;
+import kr.toxicity.model.api.tracker.EntityTrackerRegistry;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 
 public class BMStateCommand extends AbstractCommand {
 
     public BMStateCommand() {
         setName("bmstate");
-        setSyntax("bmstate entity:<entity> state:<animation> (loop:<once|loop|hold>) (speed:<#.#>) (remove) (override)");
+        setSyntax("bmstate entity:<entity> state:<animation> (loop:<once|loop|hold>) (speed:<#.#>) (remove)");
         autoCompile();
     }
 
     // <--[command]
     // @Name BMState
-    // @Syntax bmstate [entity:<entity>] [state:<animation>] [loop:<once|loop|hold>] (speed:<#.#>) (remove) (override)
-    // @Required 3
-    // @Short Plays a state on a bmentity with optional override and smooth interpolation
+    // @Syntax bmstate [entity:<entity>] [state:<animation>] (loop:<once|loop|hold>) (speed:<#.#>) (remove)
+    // @Required 2
+    // @Short Plays a state on a bmentity.
     // @Group DBetterModel
     //
     // @Description
-    // Plays a state on a bmentity with optional override and smooth interpolation.
+    // Plays a state on a bmentity. If multiple models are on the entity, it will affect the first one loaded.
     //
     // @Usage
-    // Use to add a model to an entity with custom animation settings.
-    // - bmstate entity:<context.entity> state:hi loop:loop speed:1.5 override
+    // Use to play an animation on an entity's model.
+    // - bmstate entity:<context.entity> state:walk loop:loop speed:1.5
+    //
+    // Use to stop an animation.
+    // - bmstate entity:<context.entity> state:walk remove
     // -->
 
     public static void autoExecute(ScriptEntry scriptEntry,
@@ -45,46 +48,47 @@ public class BMStateCommand extends AbstractCommand {
                                    @ArgName("remove") boolean remove
     ) {
         Entity entity = entityTag.getBukkitEntity();
-        if (!(entity instanceof LivingEntity)) {
-            Debug.echoError("The entity must be a living entity");
+        EntityTrackerRegistry registry = EntityTrackerRegistry.registry(entity.getUniqueId());
+        if (registry == null) {
+            Debug.echoError("The entity does not have any BetterModel models attached.");
             return;
         }
-        // fixed: 'tracker(org.bukkit.entity.@org.jetbrains.annotations.NotNull Entity)' is deprecated and marked for removal
-        EntityTrackerRegistry registry = EntityTrackerRegistry.registry(entity);
-        EntityTracker tracker = registry.first()
+        EntityTracker tracker = registry.first();
         if (tracker == null) {
-            Debug.echoError("The entity does not have a BetterModel attached");
+            Debug.echoError("The entity does not have a loaded model tracker.");
             return;
         }
 
         String animation = animName.asString();
-        String loop = loopMode.asString().toLowerCase().trim();
-        float speed = (float) speedTag.asDouble();
 
         if (remove) {
             tracker.stopAnimation(animation);
+            Debug.echoApproval("Stopped animation '" + animation + "' on entity.");
             return;
         }
 
-//        Supplier<Float> dynamicSpeed = () -> {
-//            return 1.0f + (System.currentTimeMillis() % 10000) / 5000f;
-//        };
-//        AnimationModifier.SpeedModifier sm = new AnimationModifier.SpeedModifier(dynamicSpeed);
+        float speed = speedTag.asFloat();
 
-        AnimationIterator.Type type = switch (loop) {
+        AnimationIterator.Type type = switch (loopMode.asString().toLowerCase().trim()) {
             case "loop" -> AnimationIterator.Type.LOOP;
             case "hold" -> AnimationIterator.Type.HOLD_ON_LAST;
             default -> AnimationIterator.Type.PLAY_ONCE;
         };
 
+        // for devs: в будущей версии 1.8.2 заменить первый аргумент на BooleanConstantSupplier.TRUE
         AnimationModifier modifier = new AnimationModifier(
-                AnimationModifier.DEFAULT.predicate(),
-                AnimationModifier.DEFAULT.start(),
-                AnimationModifier.DEFAULT.end(),
+                () -> true,
+                1, // start tick
+                0, // end tick
                 type,
                 speed
         );
 
-        tracker.animate(animation, modifier);
+        if (tracker.animate(animation, modifier)) {
+            Debug.echoApproval("Started animation '" + animation + "' on entity.");
+        }
+        else {
+            Debug.echoError("Failed to start animation '" + animation + "'. It might not exist on model '" + tracker.name() + "'.");
+        }
     }
 }
