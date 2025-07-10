@@ -15,10 +15,10 @@ import com.denizenscript.denizencore.tags.TagContext;
 import com.denizenscript.denizencore.utilities.CoreUtilities;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
 import kr.toxicity.model.api.bone.RenderedBone;
-import kr.toxicity.model.api.data.renderer.RenderInstance;
 import kr.toxicity.model.api.tracker.EntityTracker;
-import kr.toxicity.model.api.util.BonePredicate;
+import kr.toxicity.model.api.tracker.EntityTrackerRegistry;
 import kr.toxicity.model.api.util.TransformedItemStack;
+import kr.toxicity.model.api.util.function.BonePredicate;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
@@ -32,7 +32,7 @@ public class BMBoneTag implements ObjectTag, Adjustable {
     // @prefix bmbone
     // @base ElementTag
     // @format
-    // The identity format for a BMBoneTag is <uuid> + <model_name> + <bone_id>
+    // The identity format for a BMBoneTag is <uuid>|<model_name>|<bone_id>
     // Where <uuid> is the UUID of the base entity, <model_name> is the name of the model, and <bone_id> is the internal name/id of the bone.
     // For example: 'bmbone@dfc67056-b15d-45dd-b239-482d92e482e5,dummy,head'.
     //
@@ -42,13 +42,8 @@ public class BMBoneTag implements ObjectTag, Adjustable {
     //
     // -->
 
-    // ——————————————————————————
-    // 1) Константы / Object Fetcher
-    // ——————————————————————————
-
     public static final String PREFIX = "bmbone";
 
-    /** Парсер тега bmbone@<uuid>,<modelName>,<boneId> для получения EntityTracker, BMEntityTag, BMBoneTag**/
     public static BMBoneTag valueOf(String string) {
         return valueOf(string, null);
     }
@@ -64,46 +59,35 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         String[] parts = body.split(",", 3);
         if (parts.length < 3) return null;
 
-        // parts[0]=entity UUID, parts[1]=model name, parts[2]=bone id
         EntityTag entityTag = EntityTag.valueOf(parts[0], context);
         if (entityTag == null || entityTag.getBukkitEntity() == null) return null;
 
-        EntityTracker tracker = EntityTracker.tracker(entityTag.getBukkitEntity());
+        EntityTrackerRegistry registry = EntityTrackerRegistry.registry(entityTag.getBukkitEntity()); //
+        if (registry == null) return null;
+
+        EntityTracker tracker = registry.tracker(parts[1]); //
         if (tracker == null) return null;
 
-        RenderInstance inst = tracker.getInstance();
-        RenderedBone bone = inst.boneOf(b -> b.getName().name().equals(parts[2]));
+        RenderedBone bone = tracker.bone(parts[2]); // [cite: 17]
         if (bone == null) return null;
 
-        return new BMBoneTag(tracker, inst, bone);
+        return new BMBoneTag(tracker, bone);
     }
 
     public static boolean matches(String arg) {
         return arg != null && CoreUtilities.toLowerCase(arg).startsWith(PREFIX + "@");
     }
 
-    // ——————————————————————————
-    // 2) Поля и конструкторы
-    // ——————————————————————————
-
     private final EntityTracker tracker;
-    private final RenderInstance instance;
     private final RenderedBone bone;
 
-    /** Конструктор из трекера + инстанса + кости **/
-    public BMBoneTag(EntityTracker tracker, RenderInstance instance, RenderedBone bone) {
-        this.tracker  = tracker;
-        this.instance = instance;
-        this.bone     = bone;
+    public BMBoneTag(EntityTracker tracker, RenderedBone bone) {
+        this.tracker = tracker;
+        this.bone    = bone;
     }
 
     public EntityTracker getTracker() { return tracker; }
-    public RenderInstance getInstance() { return instance; }
     public RenderedBone getBone() { return bone; }
-
-    // ——————————————————————————
-    // 3) ObjectTag API
-    // ——————————————————————————
 
     private String prefix = PREFIX;
 
@@ -114,69 +98,34 @@ public class BMBoneTag implements ObjectTag, Adjustable {
     @Override
     public String identify() {
         return PREFIX + "@"
-                + tracker.uuid()
-                + "," + instance.getParent().name()
-                + "," + bone.getName().name();
+                + tracker.registry().uuid() //
+                + "," + tracker.name() // [cite: 14]
+                + "," + bone.getName().name(); // [cite: 26]
     }
 
     @Override public String identifySimple() { return identify(); }
     @Override public Object getJavaObject() { return bone; }
     @Override public String toString() { return identify(); }
 
-    // ——————————————————————————
-    // 4) Tags Registration
-    // ——————————————————————————
-
     public static final ObjectTagProcessor<BMBoneTag> tagProcessor = new ObjectTagProcessor<>();
 
     public static void registerTags() {
-        // <--[tag]
-        // @attribute <BMBoneTag.name>
-        // @returns ElementTag
-        // @plugin DBetterModel
-        // @description
-        // Returns the id of the bone.
-        //
-        // -->
         tagProcessor.registerTag(ElementTag.class, "name", (attr,obj) ->
-                new ElementTag(obj.getBone().getName().name())
+                new ElementTag(obj.getBone().getName().name()) // [cite: 26]
         );
 
-        // <--[tag]
-        // @attribute <BMBoneTag.global_position>
-        // @returns LocationTag
-        // @plugin DBetterModel
-        // @description
-        // Returns the position of the bone as a vector.
-        //
-        // -->
         tagProcessor.registerTag(LocationTag.class, "global_position", (attr,obj) -> {
-            Vector pos = Vector.fromJOML(obj.getBone().worldPosition());
-            return new LocationTag(pos);
+            Vector3f worldPos = obj.getBone().worldPosition(); //
+            Vector pos = new Vector(worldPos.x, worldPos.y, worldPos.z);
+            return new LocationTag(obj.getTracker().sourceEntity().getWorld(), pos.getX(), pos.getY(), pos.getZ()); //
         });
 
-        // <--[tag]
-        // @attribute <BMBoneTag.bm_model>
-        // @returns BMModelTag
-        // @plugin DBetterModel
-        // @description
-        // Returns the bmmodel of the bone.
-        //
-        // -->
         tagProcessor.registerTag(BMModelTag.class, "bm_model", (attr,obj) ->
-                new BMModelTag(obj.tracker, obj.instance)
+                new BMModelTag(obj.tracker)
         );
 
-        // <--[tag]
-        // @attribute <BMBoneTag.bm_entity>
-        // @returns BMEntityTag
-        // @plugin DBetterModel
-        // @description
-        // Returns the bm_entity of the bone.
-        //
-        // -->
         tagProcessor.registerTag(BMEntityTag.class, "bm_entity", (attr,obj) ->
-                new BMEntityTag(obj.tracker)
+                new BMEntityTag(obj.getTracker().registry())
         );
     }
 
@@ -184,44 +133,13 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         return tagProcessor.getObjectAttribute(this, attribute);
     }
 
-    // ——————————————————————————
-    // 5) Mechanisms
-    // ——————————————————————————
-
-    /**
-     * Механизмы для костей:
-     *   - adjust <bone> item:<itemTag>
-     *   - adjust <bone> scale:<location>
-     *   - adjust <bone> pivot_offset:<location>
-     */
     @Override public void adjust(Mechanism mechanism) {
         tagProcessor.processMechanism(this, mechanism);
     }
 
     static {
-        // <--[mechanism]
-        // @object BMBoneTag
-        // @name scale
-        // @input LocationTag
-        // @plugin DBetterModel
-        // @description
-        // Sets the scale of the bone.
-        //
-        // -->
-        tagProcessor.registerMechanism("scale", false, LocationTag.class, (object, mech, value) -> {
-            Vector3f scale = new Vector3f(
-                    (float)value.getX(),
-                    (float)value.getY(),
-                    (float)value.getZ());
-
-            object.bone.addAnimationMovementModifier(
-                    BonePredicate.of(BonePredicate.State.NOT_SET, b -> true),
-                    mov -> {
-                        assert mov.scale() != null;
-                        mov.scale().set(scale);
-                    }
-            );
-        });
+        // Механизм 'scale' был удален, так как метод addAnimationMovementModifier был удален из API,
+        // и прямого аналога для изменения масштаба кости с помощью Vector3f не существует. (закиньте пулл реквест в случае решения)
 
         // <--[mechanism]
         // @object BMBoneTag
@@ -229,43 +147,39 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         // @input ListTag
         // @plugin DBetterModel
         // @description
-        // Sets the item that bone uses (<list[item|offset]>)
-        //
+        // Sets the item that the bone uses.
+        // Input is a ListTag containing the ItemTag, and optionally a LocationTag for local offset.
+        // Example: - adjust <[bone]> item:<[stick|l@0,0.5,0]>
         // -->
         tagProcessor.registerMechanism("item", false, ListTag.class, (object, mech, list) -> {
             if (list.isEmpty()) {
-                Debug.echoError("The ListTag must contain at least one element.");
+                Debug.echoError("The ListTag must contain at least one element (an ItemTag).");
                 return;
             }
 
-            ObjectTag itemObj = list.getObject(0);
-            if (!(itemObj instanceof ItemTag itemTag)) {
-                Debug.echoError("'item' key must be a valid ItemTag.");
+            ItemTag itemTag = list.getObject(0).asType(ItemTag.class, mech.context);
+            if (itemTag == null) {
+                Debug.echoError("'item' value must be a valid ItemTag.");
                 return;
             }
 
             Vector3f localOffset = new Vector3f(0f, 0f, 0f);
-
             if (list.size() > 1) {
-                ObjectTag offsetObj = list.getObject(1);
-                if (!(offsetObj instanceof LocationTag loc)) {
-                    Debug.echoError("'offset' key must be a LocationTag.");
+                LocationTag offsetLoc = list.getObject(1).asType(LocationTag.class, mech.context);
+                if (offsetLoc == null) {
+                    Debug.echoError("The second element in the list must be a LocationTag for the offset.");
                     return;
                 }
-                localOffset.set(
-                        (float) loc.getX(),
-                        (float) loc.getY(),
-                        (float) loc.getZ()
-                );
+                localOffset.set((float) offsetLoc.getX(), (float) offsetLoc.getY(), (float) offsetLoc.getZ());
             }
 
-            Vector3f globalOffset = new Vector3f(0f, 0f, 0f);
-            TransformedItemStack tis = new TransformedItemStack(
-                    globalOffset,
-                    localOffset,
-                    new Vector3f(1f, 1f, 1f),
+            TransformedItemStack tis = TransformedItemStack.of(
+                    new Vector3f(0f, 0f, 0f), // position (global offset)
+                    localOffset,                       // offset (local offset)
+                    new Vector3f(1f, 1f, 1f), // scale
                     itemTag.getItemStack()
             );
+
             object.getBone().itemStack(BonePredicate.TRUE, tis);
         });
     }
