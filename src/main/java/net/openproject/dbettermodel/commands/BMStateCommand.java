@@ -48,11 +48,14 @@ public class BMStateCommand extends AbstractCommand {
                                    @ArgName("remove") boolean remove
     ) {
         Entity entity = entityTag.getBukkitEntity();
-        EntityTrackerRegistry registry = EntityTrackerRegistry.registry(entity.getUniqueId());
-        if (registry == null) {
+
+        if (!EntityTrackerRegistry.hasModelData(entity)) {
             Debug.echoError("The entity does not have any BetterModel models attached.");
             return;
         }
+
+        EntityTrackerRegistry registry = EntityTrackerRegistry.registry(entity.getUniqueId());
+
         EntityTracker tracker = registry.first();
         if (tracker == null) {
             Debug.echoError("The entity does not have a loaded model tracker.");
