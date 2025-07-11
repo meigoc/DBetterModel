@@ -12,6 +12,7 @@ import kr.toxicity.model.api.animation.AnimationIterator;
 import kr.toxicity.model.api.animation.AnimationModifier;
 import kr.toxicity.model.api.tracker.EntityTracker;
 import kr.toxicity.model.api.tracker.EntityTrackerRegistry;
+import kr.toxicity.model.api.util.function.BooleanConstantSupplier;
 import org.bukkit.entity.Entity;
 
 public class BMStateCommand extends AbstractCommand {
@@ -49,12 +50,13 @@ public class BMStateCommand extends AbstractCommand {
     ) {
         Entity entity = entityTag.getBukkitEntity();
 
-        if (!EntityTrackerRegistry.hasModelData(entity)) {
+        // for 1.9.0 BM API
+        EntityTrackerRegistry registry = EntityTrackerRegistry.registry(entity.getUniqueId());
+
+        if (registry == null) {
             Debug.echoError("The entity does not have any BetterModel models attached.");
             return;
         }
-
-        EntityTrackerRegistry registry = EntityTrackerRegistry.registry(entity.getUniqueId());
 
         EntityTracker tracker = registry.first();
         if (tracker == null) {
@@ -77,10 +79,9 @@ public class BMStateCommand extends AbstractCommand {
             case "hold" -> AnimationIterator.Type.HOLD_ON_LAST;
             default -> AnimationIterator.Type.PLAY_ONCE;
         };
-
-        // for devs: в будущей версии 1.8.2 заменить первый аргумент на BooleanConstantSupplier.TRUE
+        
         AnimationModifier modifier = new AnimationModifier(
-                () -> true,
+                BooleanConstantSupplier.TRUE,
                 1, // start tick
                 0, // end tick
                 type,
