@@ -23,16 +23,18 @@ import java.net.URL;
 public class DBetterModel extends JavaPlugin {
 
     public static DBetterModel instance;
-    
+
     public static final String CRAFTBUKKIT_VERSION = "1.20.4-R0.1-SNAPSHOT";
     public static final String DENIZEN_VERSION = "1.3.0-SNAPSHOT";
-    public static final String BETTERMODEL_VERSION = "1.8.1";
-    public static final String DBETTERMODEL_VERSION = "2.0";
+    public static final String BETTERMODEL_VERSION = "1.9.0";
+    public static final String DBETTERMODEL_VERSION = "2.1.0";
 
     @Override
     public void onEnable() {
         Debug.log("DBetterModel loading...");
         saveDefaultConfig();
+        getConfig().options().copyDefaults(true);
+        saveConfig();
         instance = this;
 
         // Display build information
@@ -41,7 +43,7 @@ public class DBetterModel extends JavaPlugin {
         Debug.log("  - denizen.version: " + DENIZEN_VERSION);
         Debug.log("  - bettermodel.version: " + BETTERMODEL_VERSION);
         Debug.log("Plugin created by gleb_petrovich (Meigo™ Corporation) for Better Models API version " + BETTERMODEL_VERSION + " and Denizen " + DENIZEN_VERSION);
-        
+
         // Safely register all components
         registerCommands();
         registerObjects();
@@ -50,28 +52,30 @@ public class DBetterModel extends JavaPlugin {
 
         Debug.log("DBetterModel loaded!");
 
-        checkPluginVersions();
+        if (getConfig().getBoolean("checkUpdates", true)) {
+            checkPluginVersions();
+        }
     }
 
     private void registerCommands() {
         tryRegister("BMModelCommand",
                 () -> DenizenCore.commandRegistry.registerCommand(BMModelCommand.class),
-                "com.denizenscript.denizen.objects.EntityTag", "kr.toxicity.model.api.BetterModel");
+                "com.denizenscript.denizen.objects.EntityTag", "kr.toxicity.model.api.BetterModel", "kr.toxicity.model.api.tracker.EntityTrackerRegistry");
         tryRegister("BMStateCommand",
                 () -> DenizenCore.commandRegistry.registerCommand(BMStateCommand.class),
-                "com.denizenscript.denizen.objects.EntityTag", "kr.toxicity.model.api.animation.AnimationIterator");
+                "com.denizenscript.denizen.objects.EntityTag", "kr.toxicity.model.api.animation.AnimationIterator", "kr.toxicity.model.api.tracker.EntityTrackerRegistry", "kr.toxicity.model.api.util.function.BooleanConstantSupplier");
     }
 
     private void registerObjects() {
         tryRegister("BMEntityTag",
                 () -> ObjectFetcher.registerWithObjectFetcher(BMEntityTag.class, BMEntityTag.tagProcessor),
-                "com.denizenscript.denizen.objects.EntityTag", "kr.toxicity.model.api.tracker.EntityTracker");
+                "com.denizenscript.denizen.objects.EntityTag", "kr.toxicity.model.api.tracker.EntityTracker", "kr.toxicity.model.api.tracker.EntityTrackerRegistry");
         tryRegister("BMModelTag",
                 () -> ObjectFetcher.registerWithObjectFetcher(BMModelTag.class, BMModelTag.tagProcessor),
-                "com.denizenscript.denizen.objects.EntityTag", "kr.toxicity.model.api.bone.RenderedBone");
+                "com.denizenscript.denizen.objects.EntityTag", "kr.toxicity.model.api.bone.RenderedBone", "kr.toxicity.model.api.tracker.EntityTrackerRegistry");
         tryRegister("BMBoneTag",
                 () -> ObjectFetcher.registerWithObjectFetcher(BMBoneTag.class, BMBoneTag.tagProcessor),
-                "com.denizenscript.denizen.objects.EntityTag", "kr.toxicity.model.api.bone.RenderedBone");
+                "com.denizenscript.denizen.objects.EntityTag", "kr.toxicity.model.api.bone.RenderedBone", "kr.toxicity.model.api.util.TransformedItemStack", "kr.toxicity.model.api.util.function.BonePredicate");
     }
 
     private void registerEvents() {
@@ -86,7 +90,7 @@ public class DBetterModel extends JavaPlugin {
     private void registerExtensions() {
         tryRegister("DBetterModelEntityTagExtensions",
                 DBetterModelEntityTagExtensions::register,
-                "com.denizenscript.denizen.objects.EntityTag");
+                "com.denizenscript.denizen.objects.EntityTag", "net.openproject.dbettermodel.objects.BMEntityTag");
     }
 
     private void tryRegister(String featureName, Runnable registrationLogic, String... requiredClasses) {
