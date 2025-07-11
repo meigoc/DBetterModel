@@ -1,6 +1,6 @@
 name: DBetterModel
-authors: ['gleb_petrovich (meigoc)', 'isnsest']
-version: 2.0.1
+authors: ['gleb_petrovich (meigoc)']
+version: 2.1.0
 main: net.openproject.dbettermodel.DBetterModel
 depend: [Denizen, BetterModel]
 
