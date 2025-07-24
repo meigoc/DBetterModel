@@ -15,7 +15,7 @@ public class BMReloadStartEvent extends BukkitScriptEvent implements Listener {
     //
     // @Cancellable false
     //
-    // @Triggers when a BetterModel starts reloading
+    // @Triggers when BetterModel starts reloading its configuration and models.
     //
     // -->
 
@@ -23,16 +23,13 @@ public class BMReloadStartEvent extends BukkitScriptEvent implements Listener {
         registerCouldMatcher("bm starts reload");
     }
 
-    private PluginStartReloadEvent event;
-
     @Override
     public boolean matches(ScriptPath path) {
-        return true;
+        return super.matches(path);
     }
 
     @EventHandler
     public void onBetterModelStartReload(PluginStartReloadEvent e) {
-        this.event = e;
         fire(e);
     }
 }
