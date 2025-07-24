@@ -65,6 +65,6 @@ tasks.withType<Javadoc>() {
 
 tasks.processResources {
     filesMatching("plugin.yml") {
-        expand(mapOf("BUILD_NUMBER" to System.getenv("BUILD_NUMBER")))
+        expand(mapOf("version" to project.properties["BUILD_NUMBER"]))
     }
 }
