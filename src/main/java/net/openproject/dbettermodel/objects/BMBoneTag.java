@@ -1,30 +1,26 @@
 package net.openproject.dbettermodel.objects;
 
 import com.denizenscript.denizen.objects.EntityTag;
-import com.denizenscript.denizen.objects.ItemTag;
 import com.denizenscript.denizen.objects.LocationTag;
 import com.denizenscript.denizencore.objects.Adjustable;
 import com.denizenscript.denizencore.objects.Fetchable;
 import com.denizenscript.denizencore.objects.Mechanism;
 import com.denizenscript.denizencore.objects.ObjectTag;
 import com.denizenscript.denizencore.objects.core.ElementTag;
-import com.denizenscript.denizencore.objects.core.ListTag;
 import com.denizenscript.denizencore.tags.Attribute;
 import com.denizenscript.denizencore.tags.ObjectTagProcessor;
 import com.denizenscript.denizencore.tags.TagContext;
 import com.denizenscript.denizencore.utilities.CoreUtilities;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
+import kr.toxicity.model.api.BetterModel;
 import kr.toxicity.model.api.bone.RenderedBone;
 import kr.toxicity.model.api.tracker.EntityTracker;
-import kr.toxicity.model.api.tracker.EntityTrackerRegistry;
-import kr.toxicity.model.api.util.TransformedItemStack;
 import kr.toxicity.model.api.util.function.BonePredicate;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
-/**
- * Denizen ObjectTag for a single bone in a BetterModel RenderInstance.
- */
+import java.util.Optional;
+
 public class BMBoneTag implements ObjectTag, Adjustable {
 
     // <--[ObjectType]
@@ -32,13 +28,12 @@ public class BMBoneTag implements ObjectTag, Adjustable {
     // @prefix bmbone
     // @base ElementTag
     // @format
-    // The identity format for a BMBoneTag is <uuid>|<model_name>|<bone_id>
-    // Where <uuid> is the UUID of the base entity, <model_name> is the name of the model, and <bone_id> is the internal name/id of the bone.
+    // The identity format for a BMBoneTag is <uuid>,<model_name>,<bone_name>
     // For example: 'bmbone@dfc67056-b15d-45dd-b239-482d92e482e5,dummy,head'.
     //
     // @plugin DBetterModel
     // @description
-    // Represents a bone in an BMModel.
+    // Represents a single bone within a specific model instance on an entity.
     //
     // -->
 
@@ -54,7 +49,7 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         String lower = CoreUtilities.toLowerCase(string);
 
         if (!lower.startsWith(PREFIX + "@")) return null;
-        String body = lower.substring((PREFIX + "@").length());
+        String body = lower.substring(PREFIX.length() + 1);
 
         String[] parts = body.split(",", 3);
         if (parts.length < 3) return null;
@@ -62,16 +57,12 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         EntityTag entityTag = EntityTag.valueOf(parts[0], context);
         if (entityTag == null || entityTag.getBukkitEntity() == null) return null;
 
-        EntityTrackerRegistry registry = EntityTrackerRegistry.registry(entityTag.getBukkitEntity()); //
-        if (registry == null) return null;
-
-        EntityTracker tracker = registry.tracker(parts[1]); //
-        if (tracker == null) return null;
-
-        RenderedBone bone = tracker.bone(parts[2]); // [cite: 17]
-        if (bone == null) return null;
-
-        return new BMBoneTag(tracker, bone);
+        return BetterModel.registry(entityTag.getBukkitEntity())
+                .map(registry -> registry.tracker(parts[1]))
+                .map(tracker -> Optional.ofNullable(tracker.bone(parts[2]))
+                        .map(bone -> new BMBoneTag(tracker, bone))
+                        .orElse(null))
+                .orElse(null);
     }
 
     public static boolean matches(String arg) {
@@ -83,24 +74,23 @@ public class BMBoneTag implements ObjectTag, Adjustable {
 
     public BMBoneTag(EntityTracker tracker, RenderedBone bone) {
         this.tracker = tracker;
-        this.bone    = bone;
+        this.bone = bone;
     }
 
-    public EntityTracker getTracker() { return tracker; }
     public RenderedBone getBone() { return bone; }
 
     private String prefix = PREFIX;
 
     @Override public String getPrefix() { return prefix; }
-    @Override public ObjectTag setPrefix(String s) { prefix = s; return this; }
+    @Override public ObjectTag setPrefix(String s) { this.prefix = s; return this; }
     @Override public boolean isUnique() { return true; }
 
     @Override
     public String identify() {
         return PREFIX + "@"
-                + tracker.registry().uuid() //
-                + "," + tracker.name() // [cite: 14]
-                + "," + bone.getName().name(); // [cite: 26]
+                + tracker.registry().uuid()
+                + "," + tracker.name()
+                + "," + bone.getName().name();
     }
 
     @Override public String identifySimple() { return identify(); }
@@ -110,22 +100,50 @@ public class BMBoneTag implements ObjectTag, Adjustable {
     public static final ObjectTagProcessor<BMBoneTag> tagProcessor = new ObjectTagProcessor<>();
 
     public static void registerTags() {
-        tagProcessor.registerTag(ElementTag.class, "name", (attr,obj) ->
-                new ElementTag(obj.getBone().getName().name()) // [cite: 26]
+        // <--[tag]
+        // @attribute <BMBoneTag.name>
+        // @returns ElementTag
+        // @plugin DBetterModel
+        // @description
+        // Returns the name of the bone.
+        // -->
+        tagProcessor.registerTag(ElementTag.class, "name", (attr, obj) ->
+                new ElementTag(obj.getBone().getName().name())
         );
 
-        tagProcessor.registerTag(LocationTag.class, "global_position", (attr,obj) -> {
-            Vector3f worldPos = obj.getBone().worldPosition(); //
-            Vector pos = new Vector(worldPos.x, worldPos.y, worldPos.z);
-            return new LocationTag(obj.getTracker().sourceEntity().getWorld(), pos.getX(), pos.getY(), pos.getZ()); //
+        // <--[tag]
+        // @attribute <BMBoneTag.global_position>
+        // @returns LocationTag
+        // @plugin DBetterModel
+        // @description
+        // Returns the bone's current position in the world.
+        // -->
+        tagProcessor.registerTag(LocationTag.class, "global_position", (attr, obj) -> {
+            Vector3f worldPos = obj.getBone().worldPosition();
+            Vector pos = new Vector(worldPos.x(), worldPos.y(), worldPos.z());
+            return new LocationTag(obj.tracker.sourceEntity().getWorld(), pos.getX(), pos.getY(), pos.getZ());
         });
 
-        tagProcessor.registerTag(BMModelTag.class, "bm_model", (attr,obj) ->
-                new BMModelTag(obj.tracker)
+        // <--[tag]
+        // @attribute <BMBoneTag.is_visible>
+        // @returns ElementTag(Boolean)
+        // @plugin DBetterModel
+        // @description
+        // Returns whether the bone is currently visible.
+        // -->
+        tagProcessor.registerTag(ElementTag.class, "is_visible", (attr, obj) ->
+                new ElementTag(obj.getBone().isVisible())
         );
 
-        tagProcessor.registerTag(BMEntityTag.class, "bm_entity", (attr,obj) ->
-                new BMEntityTag(obj.getTracker().registry())
+        // <--[tag]
+        // @attribute <BMBoneTag.bm_model>
+        // @returns BMModelTag
+        // @plugin DBetterModel
+        // @description
+        // Returns the parent model of this bone.
+        // -->
+        tagProcessor.registerTag(BMModelTag.class, "bm_model", (attr, obj) ->
+                new BMModelTag(obj.tracker)
         );
     }
 
@@ -134,54 +152,25 @@ public class BMBoneTag implements ObjectTag, Adjustable {
     }
 
     @Override public void adjust(Mechanism mechanism) {
-        tagProcessor.processMechanism(this, mechanism);
-    }
-
-    static {
-        // Механизм 'scale' был удален, так как метод addAnimationMovementModifier был удален из API,
-        // и прямого аналога для изменения масштаба кости с помощью Vector3f не существует. (закиньте пулл реквест в случае решения)
-
         // <--[mechanism]
         // @object BMBoneTag
-        // @name item
-        // @input ListTag
+        // @name tint
+        // @input ElementTag(Integer)
         // @plugin DBetterModel
         // @description
-        // Sets the item that the bone uses.
-        // Input is a ListTag containing the ItemTag, and optionally a LocationTag for local offset.
-        // Example: - adjust <[bone]> item:<[stick|l@0,0.5,0]>
+        // Applies a color tint to the bone's item. The color is specified as a single integer representing the RGB value.
+        // For example, red is 16711680.
+        // @tags
+        // <BMBoneTag.tint>
         // -->
-        tagProcessor.registerMechanism("item", false, ListTag.class, (object, mech, list) -> {
-            if (list.isEmpty()) {
-                Debug.echoError("The ListTag must contain at least one element (an ItemTag).");
-                return;
+        if (mechanism.matches("tint") && mechanism.requireInteger()) {
+            int color = mechanism.getValue().asInt();
+            if (bone.tint(BonePredicate.TRUE, color)) {
+                tracker.forceUpdate(true);
             }
+        }
 
-            ItemTag itemTag = list.getObject(0).asType(ItemTag.class, mech.context);
-            if (itemTag == null) {
-                Debug.echoError("'item' value must be a valid ItemTag.");
-                return;
-            }
-
-            Vector3f localOffset = new Vector3f(0f, 0f, 0f);
-            if (list.size() > 1) {
-                LocationTag offsetLoc = list.getObject(1).asType(LocationTag.class, mech.context);
-                if (offsetLoc == null) {
-                    Debug.echoError("The second element in the list must be a LocationTag for the offset.");
-                    return;
-                }
-                localOffset.set((float) offsetLoc.getX(), (float) offsetLoc.getY(), (float) offsetLoc.getZ());
-            }
-
-            TransformedItemStack tis = TransformedItemStack.of(
-                    new Vector3f(0f, 0f, 0f), // position (global offset)
-                    localOffset,                       // offset (local offset)
-                    new Vector3f(1f, 1f, 1f), // scale
-                    itemTag.getItemStack()
-            );
-
-            object.getBone().itemStack(BonePredicate.TRUE, tis);
-        });
+        tagProcessor.processMechanism(this, mechanism);
     }
 
     @Override public void applyProperty(Mechanism mechanism) {
