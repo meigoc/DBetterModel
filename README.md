@@ -63,7 +63,7 @@ Plays a player-specific animation. These animations are sourced from models in t
   - `hold`: Plays the animation once and freezes on the final frame.
 - **Examples**:
   - To make a player perform a 'roll' animation:  
-    `bmlimb target:<player> model:player_base animation:roll`
+    `bmlimb target:<player> model:steve animation:roll`
   - To start a repeating 'dance' animation:  
     `bmlimb target:<player> model:player_gestures animation:dance loop:loop`
   - To make a player strike a pose and hold it:  
