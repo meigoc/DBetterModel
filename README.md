@@ -1,148 +1,126 @@
-DBetterModel
+DBetterModel 3.0.0
 ---------
 
-**DBetterModel: Adds interop between BetterModel and Denizen!**
+**DBetterModel 3.0.0: Adds interop between BetterModel and Denizen!**
 
 # Docs
 
-Supports BetterModel v1.9.0
+Supports BetterModel v1.10.1, Minecraft 1.21.4, Denizen 1.3.1 (7144)
 
 -----
+
+
 
 ## Commands
 
-### BMModel
+### bmboard
+**Syntax:** `bmboard entity:<entity> model:<model> bone:<bone> type:<fixed|vertical|horizontal|center>`  
+**Required:** 4  
+**Short:** Applies a billboard effect to a specific bone of a model.  
+**Group:** DBetterModel  
 
-  * **Name:** `BMModel`
-  * **Syntax:** `bmmodel [entity:<entity>] [model:<model>] (remove)`
-  * **Short:** Adds or removes a model from an entity.
-  * **Required:** 2
-  * **Group:** DBetterModel
-  * **Usage:**
-      * To add a model to an entity:
-        ```yaml
-        - bmmodel entity:<context.entity> model:my_model
-        ```
-      * To remove a model from an entity:
-        ```yaml
-        - bmmodel entity:<context.entity> model:my_model remove
-        ```
+**Description:**  
+Makes a specific bone on a model always face the player.  
+- `fixed`: Disables billboard effect.  
+- `vertical`: The bone rotates on the Y-axis only.  
+- `horizontal`: The bone rotates on the X and Z axes.  
+- `center`: The bone rotates on all axes to face the player.  
 
-### BMState
+Automatically sends an update packet so the change is visible instantly.
 
-  * **Name:** `BMState`
-  * **Syntax:** `bmstate [entity:<entity>] [state:<animation>] (loop:<once|loop|hold>) (speed:<#.#>) (remove)`
-  * **Short:** Plays a state on a bmentity.
-  * **Description:** Plays a state on a bmentity. If multiple models are on the entity, it will affect the first one loaded.
-  * **Required:** 2
-  * **Group:** DBetterModel
-  * **Usage:**
-      * To play an animation on an entity's model:
-        ```yaml
-        - bmstate entity:<context.entity> state:walk loop:loop speed:1.5
-        ```
-      * To stop an animation:
-        ```yaml
-        - bmstate entity:<context.entity> state:walk remove
-        ```
+---
 
------
+### bmlimb
+**Syntax:** `bmlimb target:<player> model:<model_animator> animation:<animation_name> (loop:<once|loop|hold>)`  
+**Required:** 3  
+**Short:** Plays a player-specific animation.  
+**Group:** DBetterModel  
+
+**Description:**  
+Plays a player animation from a model in the `player-animations` folder.  
+The `loop` argument controls playback mode:  
+- `once`: Plays the animation a single time (default).  
+- `loop`: Repeats the animation indefinitely.  
+- `hold`: Plays once and freezes on the final frame.  
+
+To stop a looping or held animation, play another animation over it.
+
+---
+
+### bmmodel
+**Syntax:** `bmmodel entity:<entity> model:<model> (remove)`  
+**Required:** 2  
+**Short:** Adds or removes a model from an entity.  
+**Group:** DBetterModel  
+
+**Description:**  
+Adds or removes a specific model from an entity. Necessary for entities that can have multiple models.
+
+**Tags:**  
+- `<EntityTag.bm_entity>`  
+- `<BMEntityTag.model[<name>]>`
+
+---
+
+### bmstate
+**Syntax:** `bmstate entity:<entity> model:<model> state:<animation> (bones:<list>) (loop:<once|loop|hold>) (speed:<#.#>) (lerp_frames:<#>) (remove)`  
+**Required:** 3  
+**Short:** Plays or stops a layered animation state on a specific model on an entity.  
+**Group:** DBetterModel  
+
+**Description:**  
+Plays or stops an animation state on a model attached to an entity. Supports layering by targeting specific bones.  
+- `bones`: Optional list of bone names (pipe-separated).  
+- If `bones` not provided, applies to entire model.  
 
 ## Events
 
-### bm finishes reload
-
-  * **Events:** `bm finishes reload`
-  * **Group:** DBetterModel
-  * **Cancellable:** false
-  * **Triggers:** when a BetterModel finishes reloading.
-  * **Context:**
-      * `<context.result>`: Returns the result of the reload.
-
 ### bm starts reload
+**Group:** DBetterModel  
+**Cancellable:** false  
+**Triggers when** BetterModel starts reloading its configuration and models.
 
-  * **Events:** `bm starts reload`
-  * **Group:** DBetterModel
-  * **Cancellable:** false
-  * **Triggers:** when a BetterModel starts reloading.
+---
 
------
+### bm finishes reload
+**Group:** DBetterModel  
+**Cancellable:** false  
+**Triggers when** BetterModel finishes reloading its configuration and models.  
+
+**Context:**  
+- `<context.result>` returns whether the reload was `Success`, `Failure`, or `OnReload`.
 
 ## Object Types
 
-### BMBoneTag
-
-  * **Name:** `BMBoneTag`
-  * **Prefix:** `bmbone`
-  * **Base:** `ElementTag`
-  * **Format:** The identity format is `<uuid>|<model_name>|<bone_id>`. For example: `bmbone@dfc67056-b15d-45dd-b239-482d92e482e5,dummy,head`.
-  * **Description:** Represents a bone in a BMModel.
-
 ### BMEntityTag
+**Prefix:** `bmentity`  
+**Base:** ElementTag  
+**Format:** `bmentity@<uuid>`  
+**Plugin:** DBetterModel  
+**Description:** Represents an entity with one or more BetterModel models attached.
 
-  * **Name:** `BMEntityTag`
-  * **Prefix:** `bmentity`
-  * **Base:** `ElementTag`
-  * **Format:** The identity format is the UUID of the base entity. For example: `bmentity@dfc67056-b15d-45dd-b239-482d92e482e5`.
-  * **Description:** Represents an entity that has one or more models on it.
+**Tags:**  
+- `<BMEntityTag.base_entity>` → EntityTag (Returns the base Bukkit entity)  
+- `<BMEntityTag.model[(<model_name>)]>` → BMModelTag (Returns the specified or first model on the entity)
+
+---
 
 ### BMModelTag
+**Prefix:** `bmmodel`  
+**Base:** ElementTag  
+**Format:** `bmmodel@<uuid>,<model_name>`  
+**Plugin:** DBetterModel  
+**Description:** Represents a specific model instance attached to an entity.
 
-  * **Name:** `BMModelTag`
-  * **Prefix:** `bmmodel`
-  * **Base:** `ElementTag`
-  * **Format:** The identity format is `<uuid>,<model_name>`. For example: `bmmodel@dfc67056-b15d-45dd-b239-482d92e482e5,dummy`.
-  * **Description:** Represents a model that is attached to an entity.
+**Tags:**  
+- `<BMModelTag.bm_entity>` → BMEntityTag (Returns the parent entity)  
+- `<BMModelTag.name>` → ElementTag (Returns the model’s name)  
+- `<BMModelTag.bones>` → MapTag (Map of bone names to BMBoneTag)  
+- `<BMModelTag.bone[<name>]>` → BMBoneTag (Returns the specified bone)
 
------
+## Properties
 
-## Tags
-
-  * **`<EntityTag.bm_entity>`**
-
-      * **Returns:** `BMEntityTag`
-      * **Description:** Returns the BMEntity of the entity, if any.
-
-  * **`<BMEntityTag.base_entity>`**
-
-      * **Returns:** `EntityTag`
-      * **Description:** Returns the base Bukkit entity.
-
-  * **`<BMEntityTag.model[<model_name>]>`**
-
-      * **Returns:** `BMModelTag`
-      * **Description:** Returns the model with the specified name on the entity.
-
-  * **`<BMModelTag.bm_entity>`**
-
-      * **Returns:** `BMEntityTag`
-      * **Description:** Returns the bmentity of the model.
-
-  * **`<BMModelTag.name>`**
-
-      * **Returns:** `ElementTag`
-      * **Description:** Returns the name of the model.
-
-  * **`<BMModelTag.bones>`**
-
-      * **Returns:** `MapTag(BMBoneTag)`
-      * **Description:** Returns a map of all the bones of the model, with the bone ID as the key and the bone object as the value.
-
-  * **`<BMModelTag.bone[<id>]>`**
-
-      * **Returns:** `BMBoneTag`
-      * **Description:** Returns the bone with the specified ID of the model.
-
------
-
-## Mechanisms
-
-### item
-
-  * **Object:** `BMBoneTag`
-  * **Input:** `ListTag`
-  * **Description:** Sets the item that the bone uses. Input is a `ListTag` containing an `ItemTag`, and optionally a `LocationTag` for local offset.
-  * **Example:**
-    ```yaml
-    - adjust <[bone]> item:<[stick|l@0,0.5,0]>
-    ```
+### `<EntityTag.bm_entity>`
+**Returns:** BMEntityTag  
+**Plugin:** DBetterModel  
+**Description:** Returns the BMEntityTag of the entity, if it has any BetterModel models. Null if none.
