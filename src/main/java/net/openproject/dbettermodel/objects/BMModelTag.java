@@ -12,13 +12,12 @@ import com.denizenscript.denizencore.tags.ObjectTagProcessor;
 import com.denizenscript.denizencore.tags.TagContext;
 import com.denizenscript.denizencore.utilities.CoreUtilities;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
+import kr.toxicity.model.api.BetterModel;
 import kr.toxicity.model.api.bone.RenderedBone;
 import kr.toxicity.model.api.tracker.EntityTracker;
-import kr.toxicity.model.api.tracker.EntityTrackerRegistry;
 
-/**
- * Denizen ObjectTag for a specific model instance on an entity
- */
+import java.util.Optional;
+
 public class BMModelTag implements ObjectTag, Adjustable {
 
     // <--[ObjectType]
@@ -26,13 +25,12 @@ public class BMModelTag implements ObjectTag, Adjustable {
     // @prefix bmmodel
     // @base ElementTag
     // @format
-    // The identity format for model is <uuid>,<model_name>
-    // Where <uuid> is the UUID of the base entity, and <model_name> is the name of the model.
+    // The identity format for a BMModelTag is <uuid>,<model_name>
     // For example: 'bmmodel@dfc67056-b15d-45dd-b239-482d92e482e5,dummy'.
     //
     // @plugin DBetterModel
     // @description
-    // Represents a model that it attached to an entity.
+    // Represents a specific model instance attached to an entity.
     //
     // -->
 
@@ -48,7 +46,7 @@ public class BMModelTag implements ObjectTag, Adjustable {
 
         String lower = CoreUtilities.toLowerCase(string);
         if (!lower.startsWith(PREFIX + "@")) return null;
-        String body = lower.substring((PREFIX + "@").length());
+        String body = lower.substring(PREFIX.length() + 1);
 
         String[] parts = body.split(",", 2);
         if (parts.length < 2) return null;
@@ -56,11 +54,10 @@ public class BMModelTag implements ObjectTag, Adjustable {
         EntityTag entityTag = EntityTag.valueOf(parts[0], context);
         if (entityTag == null || entityTag.getBukkitEntity() == null) return null;
 
-        EntityTrackerRegistry registry = EntityTrackerRegistry.registry(entityTag.getBukkitEntity()); //
-        if (registry == null) return null;
-
-        EntityTracker tracker = registry.tracker(parts[1]); //
-        return tracker == null ? null : new BMModelTag(tracker);
+        return BetterModel.registry(entityTag.getBukkitEntity())
+                .map(registry -> registry.tracker(parts[1]))
+                .map(BMModelTag::new)
+                .orElse(null);
     }
 
     public static boolean matches(String arg) {
@@ -69,9 +66,8 @@ public class BMModelTag implements ObjectTag, Adjustable {
 
     private final EntityTracker tracker;
 
-    /** Конструктор из трекера **/
-    public BMModelTag(EntityTracker tracker) { //
-        this.tracker  = tracker;
+    public BMModelTag(EntityTracker tracker) {
+        this.tracker = tracker;
     }
 
     public EntityTracker getTracker() { return tracker; }
@@ -79,7 +75,7 @@ public class BMModelTag implements ObjectTag, Adjustable {
     private String prefix = PREFIX;
 
     @Override public String getPrefix() { return prefix; }
-    @Override public ObjectTag setPrefix(String s) { prefix = s; return this; }
+    @Override public ObjectTag setPrefix(String s) { this.prefix = s; return this; }
     @Override public boolean isUnique() { return true; }
 
     @Override public String identify() {
@@ -100,10 +96,10 @@ public class BMModelTag implements ObjectTag, Adjustable {
         // @returns BMEntityTag
         // @plugin DBetterModel
         // @description
-        // Returns the bmentity of the model.
+        // Returns the parent BMEntityTag of this model.
         // -->
         tagProcessor.registerTag(BMEntityTag.class, "bm_entity", (attr, obj) ->
-                new BMEntityTag(obj.getTracker().registry()) //
+                new BMEntityTag(obj.getTracker().registry())
         );
 
         // <--[tag]
@@ -114,7 +110,7 @@ public class BMModelTag implements ObjectTag, Adjustable {
         // Returns the name of the model.
         // -->
         tagProcessor.registerTag(ElementTag.class, "name", (attr, obj) ->
-                new ElementTag(obj.getTracker().name()) //
+                new ElementTag(obj.getTracker().name())
         );
 
         // <--[tag]
@@ -122,32 +118,29 @@ public class BMModelTag implements ObjectTag, Adjustable {
         // @returns MapTag(BMBoneTag)
         // @plugin DBetterModel
         // @description
-        // Returns a map of all the bones of the model, with the bone id as the key and the bone object as the value.
+        // Returns a map of all the bones of the model, with the bone name as the key and the BMBoneTag as the value.
         // -->
         tagProcessor.registerTag(MapTag.class, "bones", (attr, obj) -> {
             MapTag map = new MapTag();
-            for (RenderedBone bone : obj.getTracker().bones()) { //
-                map.putObject(bone.getName().name(),
-                        new BMBoneTag(obj.getTracker(), bone)); //
+            for (RenderedBone bone : obj.getTracker().bones()) {
+                map.putObject(bone.getName().name(), new BMBoneTag(obj.getTracker(), bone));
             }
             return map;
         });
 
         // <--[tag]
-        // @attribute <BMModelTag.bone[<id>]>
+        // @attribute <BMModelTag.bone[<name>]>
         // @returns BMBoneTag
         // @plugin DBetterModel
         // @description
-        // Returns the bone with the specified id of the model.
+        // Returns the bone with the specified name from the model.
         // -->
         tagProcessor.registerTag(BMBoneTag.class, "bone", (attr, obj) -> {
             if (!attr.hasContext(1)) return null;
-            String id = attr.getContext(1);
-            RenderedBone bone = obj.getTracker().bone(id); //
-            if (bone != null) {
-                return new BMBoneTag(obj.getTracker(), bone); //
-            }
-            return null;
+            String name = attr.getContext(1);
+            return Optional.ofNullable(obj.getTracker().bone(name))
+                    .map(bone -> new BMBoneTag(obj.getTracker(), bone))
+                    .orElse(null);
         });
     }
 
