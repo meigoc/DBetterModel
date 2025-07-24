@@ -17,10 +17,10 @@ public class BMReloadEndEvent extends BukkitScriptEvent implements Listener {
     //
     // @Cancellable false
     //
-    // @Triggers when a BetterModel finishes reloading
+    // @Triggers when BetterModel finishes reloading its configuration and models.
     //
     // @Context
-    // <context.result> returns the result
+    // <context.result> returns whether the reload was a 'Success', 'Failure', or 'OnReload'.
     //
     // -->
 
@@ -32,15 +32,15 @@ public class BMReloadEndEvent extends BukkitScriptEvent implements Listener {
 
     @Override
     public boolean matches(ScriptPath path) {
-        return true;
+        return super.matches(path);
     }
 
     @Override
     public ObjectTag getContext(String name) {
-        return switch (name) {
-            case "result" -> new ElementTag(event.getResult().toString());
-            default -> super.getContext(name);
-        };
+        if (name.equals("result")) {
+            return new ElementTag(event.getResult().getClass().getSimpleName());
+        }
+        return super.getContext(name);
     }
 
     @EventHandler
