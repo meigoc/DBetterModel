@@ -3,8 +3,6 @@ DBetterModel 3.0.0
 
 **DBetterModel 3.0.0: Adds interop between BetterModel and Denizen!**
 
-# **The documentation is outdated; use the comments in the source code as documentation.**
-
 # Docs
 
 Supports BetterModel v1.10.1, Minecraft 1.21.4, Denizen 1.3.1 (7144)
