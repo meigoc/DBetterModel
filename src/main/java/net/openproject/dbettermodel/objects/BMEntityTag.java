@@ -10,13 +10,13 @@ import com.denizenscript.denizencore.tags.ObjectTagProcessor;
 import com.denizenscript.denizencore.tags.TagContext;
 import com.denizenscript.denizencore.utilities.CoreUtilities;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
+import kr.toxicity.model.api.BetterModel;
 import kr.toxicity.model.api.tracker.EntityTracker;
 import kr.toxicity.model.api.tracker.EntityTrackerRegistry;
 import org.bukkit.entity.Entity;
 
-/**
- * Denizen ObjectTag for a BetterModel‐tracked entity
- */
+import java.util.Optional;
+
 public class BMEntityTag implements ObjectTag, Adjustable {
 
     // <--[ObjectType]
@@ -24,13 +24,12 @@ public class BMEntityTag implements ObjectTag, Adjustable {
     // @prefix bmentity
     // @base ElementTag
     // @format
-    // The identity format for modeled entities is <uuid>
-    // Where <uuid> is the UUID of the base entity.
+    // The identity format for a BMEntityTag is the UUID of the base entity.
     // For example: 'bmentity@dfc67056-b15d-45dd-b239-482d92e482e5'.
     //
     // @plugin DBetterModel
     // @description
-    // Represents an entity that has one or more models on it.
+    // Represents an entity that has one or more BetterModel models attached to it.
     //
     // -->
 
@@ -40,9 +39,6 @@ public class BMEntityTag implements ObjectTag, Adjustable {
         return valueOf(string, null);
     }
 
-    /**
-     * Парсер тега bmentity@<uuid> для получения EntityTracker, BMEntityTag
-     */
     @Fetchable("bmentity")
     public static BMEntityTag valueOf(String string, TagContext context) {
         if (string == null) return null;
@@ -50,19 +46,12 @@ public class BMEntityTag implements ObjectTag, Adjustable {
         String lower = CoreUtilities.toLowerCase(string);
         if (!lower.startsWith(PREFIX + "@")) return null;
 
-        String uuidPart = lower.substring((PREFIX + "@").length());
-        try {
-            Entity entity = EntityTag.valueOf(uuidPart, context).getBukkitEntity();
-            if (entity == null) return null;
+        String uuidPart = lower.substring(PREFIX.length() + 1);
+        EntityTag entity = EntityTag.valueOf(uuidPart, context);
+        if (entity == null || entity.getBukkitEntity() == null) return null;
 
-            EntityTrackerRegistry registry = EntityTrackerRegistry.registry(entity); //
-            if (registry == null || !EntityTrackerRegistry.hasModelData(entity)) return null; //
-
-            return new BMEntityTag(registry);
-        }
-        catch (Exception e) {
-            return null;
-        }
+        Optional<EntityTrackerRegistry> registryOpt = BetterModel.registry(entity.getBukkitEntity());
+        return registryOpt.map(BMEntityTag::new).orElse(null);
     }
 
     public static boolean matches(String arg) {
@@ -71,14 +60,8 @@ public class BMEntityTag implements ObjectTag, Adjustable {
 
     private final EntityTrackerRegistry registry;
 
-    /** Главный конструктор: хранит EntityTrackerRegistry **/
     public BMEntityTag(EntityTrackerRegistry registry) {
         this.registry = registry;
-    }
-
-    /** Получение BMEntity из Bukkit-entity **/
-    public BMEntityTag(Entity entity) {
-        this(EntityTrackerRegistry.registry(entity));
     }
 
     public EntityTrackerRegistry getRegistry() {
@@ -88,12 +71,12 @@ public class BMEntityTag implements ObjectTag, Adjustable {
     private String prefix = PREFIX;
 
     @Override public String getPrefix() { return prefix; }
-    @Override public ObjectTag setPrefix(String s) { prefix = s; return this; }
+    @Override public ObjectTag setPrefix(String s) { this.prefix = s; return this; }
     @Override public boolean isUnique() { return true; }
 
     @Override
     public String identify() {
-        return PREFIX + "@" + registry.entity().getUniqueId(); //
+        return PREFIX + "@" + registry.entity().getUniqueId();
     }
 
     @Override public String identifySimple() { return identify(); }
@@ -108,29 +91,35 @@ public class BMEntityTag implements ObjectTag, Adjustable {
         // @returns EntityTag
         // @plugin DBetterModel
         // @description
-        // Returns the base bukkit entity.
+        // Returns the base Bukkit entity.
         // -->
         tagProcessor.registerTag(EntityTag.class, "base_entity", (attr, obj) ->
-                new EntityTag(obj.getRegistry().entity()) //
+                new EntityTag(obj.getRegistry().entity())
         );
 
         // <--[tag]
-        // @attribute <BMEntityTag.model[<model_name>]>
+        // @attribute <BMEntityTag.model[(<model_name>)]>
         // @returns BMModelTag
         // @plugin DBetterModel
         // @description
         // Returns the model with the specified name on the entity.
+        // If no name is provided, returns the first model loaded on the entity.
         // -->
         tagProcessor.registerTag(BMModelTag.class, "model", (attr, obj) -> {
-            if (!attr.hasContext(1)) {
-                Debug.echoError("The tag BMEntityTag.model[...] must have a model name specified.");
-                return null;
-            }
-            String modelName = attr.getContext(1);
-            EntityTracker tracker = obj.getRegistry().tracker(modelName); //
-            if (tracker == null) {
-                Debug.echoError("The entity does not have a model named '" + modelName + "'.");
-                return null;
+            EntityTracker tracker;
+            if (attr.hasContext(1)) {
+                String modelName = attr.getContext(1);
+                tracker = obj.getRegistry().tracker(modelName);
+                if (tracker == null) {
+                    attr.echoError("The entity does not have a model named '" + modelName + "'.");
+                    return null;
+                }
+            } else {
+                tracker = obj.getRegistry().first();
+                if (tracker == null) {
+                    attr.echoError("The entity has a model registry but no models are currently loaded.");
+                    return null;
+                }
             }
             return new BMModelTag(tracker);
         });
