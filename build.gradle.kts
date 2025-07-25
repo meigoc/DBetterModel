@@ -35,12 +35,18 @@ repositories {
     maven {
         url = uri("https://maven.citizensnpcs.co/repo")
     }
+
+    maven("https://repo.codemc.org/repository/maven-public/") {
+        name = "codemc"
+    }
 }
 
 dependencies {
     implementation("io.papermc.paper:paper-api:${project.properties["craftbukkit.version"]}")
     implementation("com.denizenscript:denizen:${project.properties["denizen.version"]}")
     compileOnly("io.github.toxicity188:BetterModel:${project.properties["bettermodel.version"]}")
+    compileOnly("com.mojang:authlib:3.9.47")
+    compileOnly("net.skinsrestorer:skinsrestorer-api:15.7.7")
 }
 
 fun buildNumber(): String = project.findProperty("BUILD_NUMBER") as? String ?: "UNKNOWN"
@@ -62,7 +68,6 @@ tasks.withType<JavaCompile>() {
 tasks.withType<Javadoc>() {
     options.encoding = "UTF-8"
 }
-
 tasks.processResources {
     filesMatching("plugin.yml") {
         expand(mapOf("version" to project.properties["BUILD_NUMBER"]))
