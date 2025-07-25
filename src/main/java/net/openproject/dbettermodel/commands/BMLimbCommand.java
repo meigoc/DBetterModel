@@ -13,6 +13,7 @@ import kr.toxicity.model.api.animation.AnimationIterator;
 import kr.toxicity.model.api.animation.AnimationModifier;
 import kr.toxicity.model.api.manager.PlayerManager;
 import kr.toxicity.model.api.util.function.BooleanConstantSupplier;
+import net.openproject.dbettermodel.util.DBMDebug;
 import org.bukkit.entity.Player;
 
 import java.util.HashSet;
@@ -59,8 +60,6 @@ public class BMLimbCommand extends AbstractCommand {
     @Override
     public void addCustomTabCompletions(TabCompletionsBuilder tab) {
         tab.addWithPrefix("model:", BetterModel.limbs().stream().map(m -> m.name()).toList());
-
-        // CORRECTED LINE: Wrapped the string options in a List.
         tab.addWithPrefix("loop:", List.of("once", "loop", "hold"));
 
         if (tab.arg.toLowerCase().startsWith("animation:")) {
@@ -74,21 +73,19 @@ public class BMLimbCommand extends AbstractCommand {
                                    @ArgName("target") @ArgPrefixed PlayerTag playerTag,
                                    @ArgName("model") @ArgPrefixed ElementTag modelName,
                                    @ArgName("animation") @ArgPrefixed ElementTag animationName,
-                                   @ArgName("loop") @ArgDefaultText("once") @ArgPrefixed ElementTag loopMode
-    ) {
+                                   @ArgName("loop") @ArgDefaultText("once") @ArgPrefixed ElementTag loopMode) {
 
         Player player = playerTag.getPlayerEntity();
         if (player == null) {
-            Debug.echoError("Player not found.");
+            DBMDebug.error(scriptEntry, "Player not found.");
             return;
         }
 
         PlayerManager playerManager = BetterModel.plugin().playerManager();
         String model = modelName.asString();
         String animation = animationName.asString();
-
         if (playerManager.limb(model) == null) {
-            Debug.echoError("Limb animator model '" + model + "' not found. Make sure it is configured under 'player-animations'.");
+            DBMDebug.error(scriptEntry, "Limb animator model '" + model + "' not found. Make sure it is configured under 'player-animations'.");
             return;
         }
 
@@ -109,9 +106,9 @@ public class BMLimbCommand extends AbstractCommand {
         boolean success = playerManager.animate(player, model, animation, modifier);
 
         if (success) {
-            Debug.echoApproval("Started player animation '" + animation + "' from model '" + model + "' on " + player.getName() + " with mode '" + type.name().toLowerCase() + "'.");
+            DBMDebug.approval(scriptEntry, "Started player animation '" + animation + "' from model '" + model + "' on " + player.getName() + " with mode '" + type.name().toLowerCase() + "'.");
         } else {
-            Debug.echoError("Failed to start animation '" + animation + "'. It might not exist in the model '" + model + "'.");
+            DBMDebug.error(scriptEntry, "Failed to start animation '" + animation + "'. It might not exist in the model '" + model + "'.");
         }
     }
 }

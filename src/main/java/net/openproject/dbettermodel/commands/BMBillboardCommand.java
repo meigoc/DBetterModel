@@ -9,6 +9,7 @@ import com.denizenscript.denizencore.scripts.commands.generator.ArgPrefixed;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
 import kr.toxicity.model.api.BetterModel;
 import kr.toxicity.model.api.util.function.BonePredicate;
+import net.openproject.dbettermodel.util.DBMDebug;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 
@@ -52,28 +53,29 @@ public class BMBillboardCommand extends AbstractCommand {
         try {
             billboardType = Display.Billboard.valueOf(type.asString().toUpperCase());
         } catch (IllegalArgumentException e) {
-            Debug.echoError("Invalid billboard type specified: " + type.asString());
+            DBMDebug.error(scriptEntry, "Invalid billboard type specified: " + type.asString());
             return;
         }
 
         BetterModel.registry(entity).ifPresentOrElse(registry -> {
             var tracker = registry.tracker(modelName.asString());
             if (tracker == null) {
-                Debug.echoError("Model '" + modelName.asString() + "' not found on entity.");
+                DBMDebug.error(scriptEntry, "Model '" + modelName.asString() + "' not found on entity.");
                 return;
             }
+
             var bone = tracker.bone(boneName.asString());
             if (bone == null) {
-                Debug.echoError("Bone '" + boneName.asString() + "' not found on model '" + modelName.asString() + "'.");
+                DBMDebug.error(scriptEntry, "Bone '" + boneName.asString() + "' not found on model '" + modelName.asString() + "'.");
                 return;
             }
 
             if (bone.billboard(BonePredicate.TRUE, billboardType)) {
                 tracker.forceUpdate(true);
-                Debug.echoApproval("Set billboard type of bone '" + boneName.asString() + "' to '" + type.asString() + "'.");
+                DBMDebug.approval(scriptEntry, "Set billboard type of bone '" + boneName.asString() + "' to '" + type.asString() + "'.");
             } else {
-                Debug.echoError("Failed to set billboard for bone '" + boneName.asString() + "'. It might be a dummy bone without a display.");
+                DBMDebug.error(scriptEntry, "Failed to set billboard for bone '" + boneName.asString() + "'. It might be a dummy bone without a display.");
             }
-        }, () -> Debug.echoError("Entity does not have any models."));
+        }, () -> DBMDebug.error(scriptEntry, "Entity does not have any models."));
     }
 }

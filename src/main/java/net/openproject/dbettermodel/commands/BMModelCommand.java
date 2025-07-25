@@ -8,6 +8,7 @@ import com.denizenscript.denizencore.scripts.commands.generator.ArgName;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgPrefixed;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
 import kr.toxicity.model.api.BetterModel;
+import net.openproject.dbettermodel.util.DBMDebug;
 import org.bukkit.entity.Entity;
 
 import java.util.Optional;
@@ -55,20 +56,19 @@ public class BMModelCommand extends AbstractCommand {
 
         Entity entity = entityTag.getBukkitEntity();
         if (model == null) {
-            Debug.echoError("Model is not specified.");
+            DBMDebug.error(scriptEntry, "Model is not specified.");
             return;
         }
         String modelName = model.asString();
-
         if (remove) {
             BetterModel.registry(entity).ifPresentOrElse(registry -> {
                 if (registry.remove(modelName)) {
-                    Debug.echoApproval("Model '" + modelName + "' removed from entity.");
+                    DBMDebug.approval(scriptEntry, "Model '" + modelName + "' removed from entity.");
                 } else {
-                    Debug.echoError("Model '" + modelName + "' not found on entity.");
+                    DBMDebug.error(scriptEntry, "Model '" + modelName + "' not found on entity.");
                 }
             }, () -> {
-                Debug.echoError("Entity does not have any models.");
+                DBMDebug.error(scriptEntry, "Entity does not have any models.");
             });
             return;
         }
@@ -76,9 +76,9 @@ public class BMModelCommand extends AbstractCommand {
         Optional.ofNullable(BetterModel.plugin().modelManager().renderer(modelName)).ifPresentOrElse(
                 renderer -> {
                     renderer.create(entity);
-                    Debug.echoApproval("Model '" + modelName + "' added to entity.");
+                    DBMDebug.approval(scriptEntry, "Model '" + modelName + "' added to entity.");
                 },
-                () -> Debug.echoError("Model renderer '" + modelName + "' not found.")
+                () -> DBMDebug.error(scriptEntry, "Model renderer '" + modelName + "' not found.")
         );
     }
 }
