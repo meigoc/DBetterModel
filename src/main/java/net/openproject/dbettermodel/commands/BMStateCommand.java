@@ -14,6 +14,7 @@ import kr.toxicity.model.api.BetterModel;
 import kr.toxicity.model.api.animation.AnimationIterator;
 import kr.toxicity.model.api.animation.AnimationModifier;
 import kr.toxicity.model.api.bone.RenderedBone;
+import net.openproject.dbettermodel.util.DBMDebug;
 import org.bukkit.entity.Entity;
 
 import java.util.HashSet;
@@ -27,7 +28,7 @@ public class BMStateCommand extends AbstractCommand {
         setSyntax("bmstate entity:<entity> model:<model> state:<animation> (bones:<list>) (loop:<once|loop|hold>) (speed:<#.#>) (lerp_frames:<#>) (remove)");
         autoCompile();
     }
-    
+
     // <--[command]
     // @Name BMState
     // @Syntax bmstate entity:<entity> model:<model> state:<animation> (bones:<list>) (loop:<once|loop|hold>) (speed:<#.#>) (lerp_frames:<#>) (remove)
@@ -60,33 +61,32 @@ public class BMStateCommand extends AbstractCommand {
                                    @ArgName("lerp_frames") @ArgDefaultText("1") @ArgPrefixed ElementTag lerpFrames,
                                    @ArgName("remove") boolean remove) {
         Entity entity = entityTag.getBukkitEntity();
-
         BetterModel.registry(entity).ifPresentOrElse(registry -> {
             var tracker = registry.tracker(modelName.asString());
             if (tracker == null) {
-                Debug.echoError("Model '" + modelName.asString() + "' not found on entity " + entity.getUniqueId() + ".");
+                DBMDebug.error(scriptEntry, "Model '" + modelName.asString() + "' not found on entity " + entity.getUniqueId() + ".");
                 return;
             }
 
             String animation = animName.asString();
 
             Predicate<RenderedBone> boneFilter = (bone) -> true;
-            if (bones != null) {
+            if (bones!= null) {
                 final Set<String> boneNames = new HashSet<>(bones);
                 boneFilter = (bone) -> boneNames.contains(bone.getName().name());
             }
 
             if (remove) {
                 if (tracker.stopAnimation(boneFilter, animation)) {
-                    Debug.echoApproval("Stopped animation '" + animation + "' on model '" + modelName.asString() + "'.");
+                    DBMDebug.approval(scriptEntry, "Stopped animation '" + animation + "' on model '" + modelName.asString() + "'.");
                 } else {
-                    Debug.echoError("Animation '" + animation + "' was not running on the specified parts of model '" + modelName.asString() + "'.");
+                    DBMDebug.error(scriptEntry, "Animation '" + animation + "' was not running on the specified parts of model '" + modelName.asString() + "'.");
                 }
                 return;
             }
 
             int lerp = lerpFrames.asInt();
-
+            
             AnimationIterator.Type type = switch (loopMode.asString().toLowerCase().trim()) {
                 case "loop" -> AnimationIterator.Type.LOOP;
                 case "hold" -> AnimationIterator.Type.HOLD_ON_LAST;
@@ -101,12 +101,12 @@ public class BMStateCommand extends AbstractCommand {
                     .build();
 
             if (tracker.animate(boneFilter, animation, modifier, () -> {})) {
-                Debug.echoApproval("Started animation '" + animation + "' on model '" + modelName.asString() + "'.");
+                DBMDebug.approval(scriptEntry, "Started animation '" + animation + "' on model '" + modelName.asString() + "'.");
             } else {
-                Debug.echoError("Failed to start animation '" + animation + "'. It might not exist on model '" + tracker.name() + "'.");
+                DBMDebug.error(scriptEntry, "Failed to start animation '" + animation + "'. It might not exist on model '" + tracker.name() + "'.");
             }
         }, () -> {
-            Debug.echoError("The entity does not have any BetterModel models attached.");
+            DBMDebug.error(scriptEntry, "The entity does not have any BetterModel models attached.");
         });
     }
 }
