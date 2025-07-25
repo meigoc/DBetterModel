@@ -107,8 +107,8 @@ Applies a player's skin part (e.g., head, cape, body) to a specific bone of a mo
 
 * **Example**:
 
-  * Apply Steve's (player name) head to the statue's head bone:
-    `bmpart entity:<[statue_entity]> model:statue_model bone:head part:head from:Steve`
+  * Apply Player's head to the statue's head bone:
+    `bmpart entity:<[statue_entity]> model:statue_model bone:head part:head from:<player>`
 
 ## Events
 
