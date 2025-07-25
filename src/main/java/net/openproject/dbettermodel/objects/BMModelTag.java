@@ -75,7 +75,8 @@ public class BMModelTag implements ObjectTag, Adjustable {
     private String prefix = PREFIX;
 
     @Override public String getPrefix() { return prefix; }
-    @Override public ObjectTag setPrefix(String s) { this.prefix = s; return this; }
+    @Override public ObjectTag setPrefix(String s) { this.prefix = s;
+                                                    return this; }
     @Override public boolean isUnique() { return true; }
 
     @Override public String identify() {
