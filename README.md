@@ -1,13 +1,14 @@
-DBetterModel 3.0.0
+DBetterModel 3.1.0
 ---------
 
-**DBetterModel 3.0.0: Adds interop between BetterModel and Denizen!**
+**DBetterModel 3.1.0: Adds interop between BetterModel and Denizen!**
 
 # Supported:
 | DBetterModel Version | BetterModel Version Supported |
 |----------------------|-------------------------------|
+| [3.1.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.1.0) | 1.10.1 |
 | [3.0.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.0.0) | 1.10.0–1.10.1 |
-| [2.1.0](https://github.com/meigoc/DBetterModel/releases/tag/v2.1.0) | 1.9.0–1.9.1 |
+| [2.1.0](https://github.com/meigoc/DBetterModel/releases/tag/v2.1.0) | 1.9.0–1.9.3 |
 | [2.0.1](https://github.com/meigoc/DBetterModel/releases/tag/v2.0.1) | 1.8.0–1.8.1 |
 | [2.0.0](https://github.com/meigoc/DBetterModel/releases/tag/v2.0)   | 1.9.0        |
 | [1.1.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.1.0) | 1.5.5        |
@@ -80,6 +81,27 @@ Plays a player-specific animation. These animations are sourced from models in t
   - To make a player strike a pose and hold it:  
     `bmlimb target:<player> model:player_poses animation:heroic_pose loop:hold`
 
+### BMPart
+
+Applies a player's skin part (e.g., head, cape, body) to a specific bone of a model.
+
+* **Syntax**: `bmpart entity:<entity> model:<model> bone:<bone> part:<part_name> from:<player>`
+* **Arguments**:
+
+  * `entity:<entity>`: Target entity to apply the skin part to.
+  * `model:<model>`: Name of the BetterModel model attached to the entity.
+  * `bone:<bone>`: Bone name within the model to map the skin part onto.
+  * `part:<part_name>`: One of the `PlayerLimb` values (e.g., `head`, `body`, `left_arm`, `cape`).
+  * `from:<player>`: The player whose skin will be used.
+* **Description**:
+
+  * Dynamically maps the specified bone to a part of the player's skin. Uses BetterModel's skin manager and bone item mapper to handle fetching, caching, and rendering.
+
+* **Example**:
+
+  * Apply Steve's (player name) head to the statue's head bone:
+    `bmpart entity:<[statue_entity]> model:statue_model bone:head part:head from:Steve`
+
 ## Events
 
 ### bm starts reload
@@ -127,4 +149,8 @@ Represents a single bone within a specific model instance on an entity.
   - `<BMBoneTag.bm_model>`: Returns the parent `BMModelTag` of this bone.
 - **Mechanisms**:
   - `tint:<color>`: Applies a color tint to the bone's item. The color is specified as a single integer representing the RGB value (e.g., red is 16711680). https://www.mathsisfun.com/hexadecimal-decimal-colors.html
+  - **visible** `<ElementTag(Boolean)>` or `<ListTag>`
+      - Sets the visibility of the bone for everyone (`Boolean`) or for specific players (`ListTag` with first element boolean and subsequent PlayerTags).
+  - **item** `<ListTag>`
+      - Sets the item displayed by this bone. First element must be an `ItemTag`; optional second element is a `LocationTag` for local offset.
  
