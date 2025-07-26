@@ -5,6 +5,9 @@
   
 **DBetterModel 3.1.0: Adds interop between BetterModel and Denizen!**
 
+[![](https://img.shields.io/badge/SpigotMC-ED8106?style=for-the-badge&logo=SpigotMC&logoColor=white)](https://www.spigotmc.org/resources/dbettermodel.127341/) 
+[![](https://img.shields.io/badge/Modrinth-00AF5C?style=for-the-badge&logo=Modrinth&logoColor=white)](https://modrinth.com/plugin/dbettermodel) 
+
 [![CodeFactor](https://www.codefactor.io/repository/github/meigoc/DBetterModel/badge?style=flat-square)](https://www.codefactor.io/repository/github/meigoc/DBetterModel)
 [![Total line](https://tokei.rs/b1/github/meigoc/DBetterModel?category=code&style=flat-square)](https://github.com/meigoc/DBetterModel)
 [![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/meigoc/DBetterModel?style=flat-square&logo=github)](https://github.com/meigoc/DBetterModel/issues)
