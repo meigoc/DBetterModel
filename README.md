@@ -1,13 +1,17 @@
-DBetterModel 3.1.0
----------
+<div align="center">
 
+<img width="145" height="157" alt="dbettermodel1" src="https://github.com/user-attachments/assets/ed2022f5-3a9d-44d2-90ec-e855702fc400" />
+
+  
 **DBetterModel 3.1.0: Adds interop between BetterModel and Denizen!**
-
-</div>
 
 [![CodeFactor](https://www.codefactor.io/repository/github/meigoc/DBetterModel/badge?style=flat-square)](https://www.codefactor.io/repository/github/meigoc/DBetterModel)
 [![Total line](https://tokei.rs/b1/github/meigoc/DBetterModel?category=code&style=flat-square)](https://github.com/meigoc/DBetterModel)
 [![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/meigoc/DBetterModel?style=flat-square&logo=github)](https://github.com/meigoc/DBetterModel/issues)
+
+</div>
+
+
 * * *
 
 # Demo:
@@ -20,6 +24,7 @@ https://github.com/user-attachments/assets/f6b71e51-7977-44ac-b19f-adf491fd4687
 
 
 # Supported:
+Supports BetterModel v1.10.1, Minecraft 1.21.4, Denizen 1.3.1 (7144)
 | DBetterModel Version | BetterModel Version Supported |
 |----------------------|-------------------------------|
 | [3.1.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.1.0) | 1.10.1 |
@@ -31,13 +36,9 @@ https://github.com/user-attachments/assets/f6b71e51-7977-44ac-b19f-adf491fd4687
 | [1.0.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.0.0) | 1.5.1        |
 
 
-# Docs
-
-Supports BetterModel v1.10.1, Minecraft 1.21.4, Denizen 1.3.1 (7144)
+# Docs (3.1.0)
 
 -----
-
-
 
 ## Commands
 
