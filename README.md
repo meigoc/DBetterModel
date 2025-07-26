@@ -10,6 +10,14 @@ DBetterModel 3.1.0
 [![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/meigoc/DBetterModel?style=flat-square&logo=github)](https://github.com/meigoc/DBetterModel/issues)
 * * *
 
+# Demo:
+
+https://github.com/user-attachments/assets/09d5f071-731a-4ad8-9b12-a571dd41f008
+
+https://github.com/user-attachments/assets/f6b71e51-7977-44ac-b19f-adf491fd4687
+
+* * *
+
 
 # Supported:
 | DBetterModel Version | BetterModel Version Supported |
