@@ -13,7 +13,6 @@ import net.openproject.dbettermodel.objects.BMBoneTag;
 import net.openproject.dbettermodel.objects.BMEntityTag;
 import net.openproject.dbettermodel.objects.BMModelTag;
 import net.openproject.dbettermodel.properties.DBetterModelEntityTagExtensions;
-import net.openproject.dbettermodel.util.DBMDebug;
 import net.skinsrestorer.api.SkinsRestorer;
 import net.skinsrestorer.api.SkinsRestorerProvider;
 import net.skinsrestorer.api.event.SkinApplyEvent;

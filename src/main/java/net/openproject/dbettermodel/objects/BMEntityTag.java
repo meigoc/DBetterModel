@@ -13,7 +13,6 @@ import com.denizenscript.denizencore.utilities.debugging.Debug;
 import kr.toxicity.model.api.BetterModel;
 import kr.toxicity.model.api.tracker.EntityTracker;
 import kr.toxicity.model.api.tracker.EntityTrackerRegistry;
-import org.bukkit.entity.Entity;
 
 import java.util.Optional;
 

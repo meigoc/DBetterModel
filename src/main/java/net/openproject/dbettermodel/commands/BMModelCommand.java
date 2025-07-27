@@ -6,7 +6,6 @@ import com.denizenscript.denizencore.scripts.ScriptEntry;
 import com.denizenscript.denizencore.scripts.commands.AbstractCommand;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgName;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgPrefixed;
-import com.denizenscript.denizencore.utilities.debugging.Debug;
 import kr.toxicity.model.api.BetterModel;
 import net.openproject.dbettermodel.util.DBMDebug;
 import org.bukkit.entity.Entity;
