@@ -4,6 +4,7 @@ import com.denizenscript.denizen.objects.PlayerTag;
 import com.denizenscript.denizencore.objects.core.ElementTag;
 import com.denizenscript.denizencore.scripts.ScriptEntry;
 import com.denizenscript.denizencore.scripts.commands.AbstractCommand;
+import com.denizenscript.denizencore.scripts.commands.generator.ArgDefaultNull;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgDefaultText;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgName;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgPrefixed;
@@ -23,13 +24,13 @@ public class BMLimbCommand extends AbstractCommand {
 
     public BMLimbCommand() {
         setName("bmlimb");
-        setSyntax("bmlimb target:<player> model:<model_animator> animation:<animation_name> (loop:<once|loop|hold>)");
+        setSyntax("bmlimb target:<player> model:<model_animator> animation:<animation_name> (loop:<once|loop|hold>) (hide:<player>)");
         autoCompile();
     }
 
     // <--[command]
     // @Name BMLimb
-    // @Syntax bmlimb target:<player> model:<model_animator> animation:<animation_name> (loop:<once|loop|hold>)
+    // @Syntax bmlimb target:<player> model:<model_animator> animation:<animation_name> (loop:<once|loop|hold>) (hide:<player>)
     // @Required 3
     // @Short Plays a player-specific animation.
     // @Group DBetterModel
@@ -40,6 +41,9 @@ public class BMLimbCommand extends AbstractCommand {
     // - once: Plays the animation a single time (default).
     // - loop: Repeats the animation indefinitely.
     // - hold: Plays the animation once and freezes on the final frame.
+    //
+    // The optional 'hide' argument allows you to make all the target player's models
+    // invisible to a specific observer player. The animation will still play for everyone else.
     //
     // To stop a looping or held animation, play another animation over it.
     //
@@ -52,8 +56,8 @@ public class BMLimbCommand extends AbstractCommand {
     // - bmlimb target:<player> model:player_gestures animation:dance loop:loop
     //
     // @Usage
-    // To make a player strike a pose and hold it.
-    // - bmlimb target:<player> model:player_poses animation:heroic_pose loop:hold
+    // To make player_1 wave, but hide their model from player_2.
+    // - bmlimb target:<[player_1]> model:player_base animation:wave hide:<[player_2]>
     // -->
 
     @Override
@@ -72,7 +76,8 @@ public class BMLimbCommand extends AbstractCommand {
                                    @ArgName("target") @ArgPrefixed PlayerTag playerTag,
                                    @ArgName("model") @ArgPrefixed ElementTag modelName,
                                    @ArgName("animation") @ArgPrefixed ElementTag animationName,
-                                   @ArgName("loop") @ArgDefaultText("once") @ArgPrefixed ElementTag loopMode) {
+                                   @ArgName("loop") @ArgDefaultText("once") @ArgPrefixed ElementTag loopMode,
+                                   @ArgName("hide") @ArgPrefixed @ArgDefaultNull PlayerTag hideForPlayer) {
 
         Player player = playerTag.getPlayerEntity();
         if (player == null) {
@@ -108,6 +113,18 @@ public class BMLimbCommand extends AbstractCommand {
             DBMDebug.approval(scriptEntry, "Started player animation '" + animation + "' from model '" + model + "' on " + player.getName() + " with mode '" + type.name().toLowerCase() + "'.");
         } else {
             DBMDebug.error(scriptEntry, "Failed to start animation '" + animation + "'. It might not exist in the model '" + model + "'.");
+        }
+
+        if (hideForPlayer!= null) {
+            Player observer = hideForPlayer.getPlayerEntity();
+            if (observer == null) {
+                DBMDebug.error(scriptEntry, "Observer player for 'hide' argument not found.");
+            } else {
+                BetterModel.registry(player).ifPresentOrElse(registry -> {
+                    registry.trackers().forEach(tracker -> tracker.hide(observer));
+                    DBMDebug.approval(scriptEntry, "Hid " + player.getName() + "'s models from " + observer.getName() + ".");
+                }, () -> DBMDebug.error(scriptEntry, "Target player " + player.getName() + " has no models to hide."));
+            }
         }
     }
 }

@@ -1,9 +1,9 @@
 <div align="center">
 
-<img width="145" height="157" alt="dbettermodel1" src="https://github.com/user-attachments/assets/ed2022f5-3a9d-44d2-90ec-e855702fc400" />
+<img width="145" height="157" alt="dbettermodel" src="https://github.com/user-attachments/assets/ed2022f5-3a9d-44d2-90ec-e855702fc400" />
 
   
-**DBetterModel 3.1.0: Adds interop between BetterModel and Denizen!**
+**DBetterModel 3.2.0: Adds interop between BetterModel and Denizen!**
 
 [![](https://img.shields.io/badge/SpigotMC-ED8106?style=for-the-badge&logo=SpigotMC&logoColor=white)](https://www.spigotmc.org/resources/dbettermodel.127341/) 
 [![](https://img.shields.io/badge/Modrinth-00AF5C?style=for-the-badge&logo=Modrinth&logoColor=white)](https://modrinth.com/plugin/dbettermodel) 
@@ -31,6 +31,7 @@ https://github.com/user-attachments/assets/f6b71e51-7977-44ac-b19f-adf491fd4687
 Supports BetterModel v1.10.1, Minecraft 1.21.4, Denizen 1.3.1 (7144)
 | DBetterModel Version | BetterModel Version Supported |
 |----------------------|-------------------------------|
+| [3.2.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.2.0) | 1.10.1 |
 | [3.1.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.1.0) | 1.10.1 |
 | [3.0.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.0.0) | 1.10.0–1.10.1 |
 | [2.1.0](https://github.com/meigoc/DBetterModel/releases/tag/v2.1.0) | 1.9.0–1.9.3 |
@@ -40,7 +41,7 @@ Supports BetterModel v1.10.1, Minecraft 1.21.4, Denizen 1.3.1 (7144)
 | [1.0.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.0.0) | 1.5.1        |
 
 
-# Docs (3.1.0)
+# Docs (3.2.0)
 
 -----
 
@@ -89,7 +90,7 @@ Applies a billboard effect to a specific bone of a model, making it always face 
 ### BMLimb
 Plays a player-specific animation. These animations are sourced from models in the `players` folder. To stop a looping or held animation, you can play another animation over it.
 
-- **Syntax**: `bmlimb target:<player> model:<model_animator> animation:<animation_name> (loop:<once|loop|hold>)`
+- **Syntax**: `bmlimb target:<player> model:<model_animator> animation:<animation_name> (loop:<once|loop|hold>) (hide:<player>)`
 - **Modes (`loop`)**:
   - `once`: Plays the animation a single time (default).
   - `loop`: Repeats the animation indefinitely.
@@ -170,6 +171,7 @@ Represents a single bone within a specific model instance on an entity.
   - `<BMBoneTag.bm_model>`: Returns the parent `BMModelTag` of this bone.
 - **Mechanisms**:
   - `tint:<color>`: Applies a color tint to the bone's item. The color is specified as a single integer representing the RGB value (e.g., red is 16711680). https://www.mathsisfun.com/hexadecimal-decimal-colors.html
+  - `scale:<location>`: Adjusts the scale of the bone.
   - **visible** `<ElementTag(Boolean)>` or `<ListTag>`
       - Sets the visibility of the bone for everyone (`Boolean`) or for specific players (`ListTag` with first element boolean and subsequent PlayerTags).
   - **item** `<ListTag>`

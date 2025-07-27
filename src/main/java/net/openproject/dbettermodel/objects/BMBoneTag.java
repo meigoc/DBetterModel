@@ -22,6 +22,7 @@ import kr.toxicity.model.api.nms.PacketBundler;
 import kr.toxicity.model.api.tracker.EntityTracker;
 import kr.toxicity.model.api.util.TransformedItemStack;
 import kr.toxicity.model.api.util.function.BonePredicate;
+import net.openproject.dbettermodel.api.BMBone;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
@@ -84,10 +85,12 @@ public class BMBoneTag implements ObjectTag, Adjustable {
 
     private final EntityTracker tracker;
     private final RenderedBone bone;
+    private final BMBone boneApi;
 
     public BMBoneTag(EntityTracker tracker, RenderedBone bone) {
         this.tracker = tracker;
         this.bone = bone;
+        this.boneApi = new BMBone(tracker, bone);
     }
 
     public RenderedBone getBone() { return bone; }
@@ -165,23 +168,22 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         return tagProcessor.getObjectAttribute(this, attribute);
     }
 
-    @Override public void adjust(Mechanism mechanism) {
+    @Override
+    public void adjust(Mechanism mechanism) {
         // <--[mechanism]
         // @object BMBoneTag
         // @name tint
         // @input ElementTag(Integer)
         // @plugin DBetterModel
         // @description
-        // Applies a color tint to the bone's item. The color is specified as a single integer representing the RGB value.
+        // Applies a color tint to the bone's item.
+        // The color is specified as a single integer representing the RGB value.
         // For example, red is 16711680.
         // @tags
         // <BMBoneTag.tint>
         // -->
         if (mechanism.matches("tint") && mechanism.requireInteger()) {
-            int color = mechanism.getValue().asInt();
-            if (bone.tint(BonePredicate.TRUE, color)) {
-                tracker.forceUpdate(true);
-            }
+            boneApi.setTint(mechanism.getValue().asInt());
         }
 
         // <--[mechanism]
@@ -209,10 +211,9 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         if (mechanism.matches("visible")) {
             boolean visible;
             ListTag targets = null;
-
             if (mechanism.value.canBeType(ListTag.class)) {
                 ListTag list = mechanism.valueAsType(ListTag.class);
-                if (list.isEmpty() || !list.getObject(0).canBeType(ElementTag.class) || !list.getObject(0).asElement().isBoolean()) {
+                if (list.isEmpty() ||!list.getObject(0).canBeType(ElementTag.class) ||!list.getObject(0).asElement().isBoolean()) {
                     mechanism.echoError("If using a ListTag for 'visible', the first element must be a boolean (true/false).");
                     return;
                 }
@@ -225,33 +226,14 @@ public class BMBoneTag implements ObjectTag, Adjustable {
             }
 
             if (targets == null || targets.isEmpty()) {
-                if (bone.togglePart(BonePredicate.TRUE, visible)) {
-                    tracker.forceUpdate(true);
-                }
+                boneApi.setVisible(visible);
             } else {
-                ModelDisplay display = bone.getDisplay();
-                if (display == null) {
-                    Debug.echoError("Cannot get ModelDisplay for this bone. Per-player visibility is not possible.");
-                    return;
-                }
-
                 List<Player> players = targets.filter(PlayerTag.class, mechanism.context)
                         .stream()
                         .map(PlayerTag::getPlayerEntity)
                         .collect(Collectors.toList());
-
-                if (players.isEmpty()) return;
-
-                PacketBundler bundler = tracker.getPipeline().createParallelBundler();
-                if (visible) {
-                    display.spawn(true, bundler);
-                    display.sendTransformation(bundler);
-                } else {
-                    display.remove(bundler);
-                }
-
-                for (Player player : players) {
-                    bundler.send(player);
+                if (!players.isEmpty()) {
+                    boneApi.setVisible(visible, players);
                 }
             }
         }
@@ -283,27 +265,35 @@ public class BMBoneTag implements ObjectTag, Adjustable {
                 Debug.echoError("The first element of the list must be a valid ItemTag.");
                 return;
             }
-
-            Vector3f localOffset = new Vector3f(0f, 0f, 0f);
+            Vector3f localOffset = null;
             if (list.size() > 1) {
                 LocationTag loc = list.getObject(1).asType(LocationTag.class, mechanism.context);
                 if (loc == null) {
                     Debug.echoError("The second element of the list, if present, must be a LocationTag for the offset.");
                     return;
                 }
-                localOffset.set((float) loc.getX(), (float) loc.getY(), (float) loc.getZ());
+                localOffset = new Vector3f((float) loc.getX(), (float) loc.getY(), (float) loc.getZ());
             }
+            boneApi.setItem(itemTag.getItemStack(), localOffset);
+        }
 
-            TransformedItemStack tis = new TransformedItemStack(
-                    new Vector3f(0f, 0f, 0f),
-                    localOffset,
-                    new Vector3f(1f, 1f, 1f),
-                    itemTag.getItemStack()
-            );
-
-            if (bone.itemStack(BonePredicate.TRUE, tis)) {
-                tracker.forceUpdate(true);
-            }
+        // <--[mechanism]
+        // @object BMBoneTag
+        // @name scale
+        // @input LocationTag
+        // @plugin DBetterModel
+        // @description
+        // Adjusts the scale of the bone. Input is a LocationTag representing a vector.
+        // For example, a scale of (2, 1, 1) will double the bone's width (X-axis).
+        // This sets the base scale and will be multiplied by any animation scales.
+        // @example
+        // # Make a bone twice as wide
+        // - adjust <[my_bone]> scale:<location>
+        // -->
+        if (mechanism.matches("scale") && mechanism.requireObject(LocationTag.class)) {
+            LocationTag loc = mechanism.valueAsType(LocationTag.class);
+            Vector3f scaleVector = new Vector3f((float) loc.getX(), (float) loc.getY(), (float) loc.getZ());
+            boneApi.setScale(scaleVector);
         }
 
         tagProcessor.processMechanism(this, mechanism);
