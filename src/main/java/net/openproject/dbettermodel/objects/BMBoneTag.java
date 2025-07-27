@@ -10,6 +10,7 @@ import com.denizenscript.denizencore.objects.Mechanism;
 import com.denizenscript.denizencore.objects.ObjectTag;
 import com.denizenscript.denizencore.objects.core.ElementTag;
 import com.denizenscript.denizencore.objects.core.ListTag;
+import com.denizenscript.denizencore.objects.core.QuaternionTag;
 import com.denizenscript.denizencore.tags.Attribute;
 import com.denizenscript.denizencore.tags.ObjectTagProcessor;
 import com.denizenscript.denizencore.tags.TagContext;
@@ -17,14 +18,11 @@ import com.denizenscript.denizencore.utilities.CoreUtilities;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
 import kr.toxicity.model.api.BetterModel;
 import kr.toxicity.model.api.bone.RenderedBone;
-import kr.toxicity.model.api.nms.ModelDisplay;
-import kr.toxicity.model.api.nms.PacketBundler;
 import kr.toxicity.model.api.tracker.EntityTracker;
-import kr.toxicity.model.api.util.TransformedItemStack;
-import kr.toxicity.model.api.util.function.BonePredicate;
 import net.openproject.dbettermodel.api.BMBone;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.List;
@@ -57,10 +55,8 @@ public class BMBoneTag implements ObjectTag, Adjustable {
     public static BMBoneTag valueOf(String string, TagContext context) {
         if (string == null) return null;
         String lower = CoreUtilities.toLowerCase(string);
-
         if (!lower.startsWith(PREFIX + "@")) return null;
         String body = string.substring(PREFIX.length() + 1);
-        
         String[] parts = body.split(",", 3);
         if (parts.length < 3) return null;
 
@@ -93,26 +89,47 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         this.boneApi = new BMBone(tracker, bone);
     }
 
-    public RenderedBone getBone() { return bone; }
+    public RenderedBone getBone() {
+        return bone;
+    }
 
     private String prefix = PREFIX;
 
-    @Override public String getPrefix() { return prefix; }
-    @Override public ObjectTag setPrefix(String s) { this.prefix = s;
-                                                    return this; }
-    @Override public boolean isUnique() { return true; }
+    @Override
+    public String getPrefix() {
+        return prefix;
+    }
+
+    @Override
+    public ObjectTag setPrefix(String s) {
+        this.prefix = s;
+        return this;
+    }
+
+    @Override
+    public boolean isUnique() {
+        return true;
+    }
 
     @Override
     public String identify() {
-        return PREFIX + "@"
-                + tracker.registry().uuid()
-                + "," + tracker.name()
-                + "," + bone.getName().name();
+        return PREFIX + "@" + tracker.registry().uuid() + "," + tracker.name() + "," + bone.getName().name();
     }
 
-    @Override public String identifySimple() { return identify(); }
-    @Override public Object getJavaObject() { return bone; }
-    @Override public String toString() { return identify(); }
+    @Override
+    public String identifySimple() {
+        return identify();
+    }
+
+    @Override
+    public Object getJavaObject() {
+        return bone;
+    }
+
+    @Override
+    public String toString() {
+        return identify();
+    }
 
     public static final ObjectTagProcessor<BMBoneTag> tagProcessor = new ObjectTagProcessor<>();
 
@@ -124,8 +141,7 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         // @description
         // Returns the name of the bone.
         // -->
-        tagProcessor.registerTag(ElementTag.class, "name", (attr, obj) ->
-                new ElementTag(obj.getBone().getName().name())
+        tagProcessor.registerTag(ElementTag.class, "name", (attr, obj) -> new ElementTag(obj.getBone().getName().name())
         );
 
         // <--[tag]
@@ -148,8 +164,7 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         // @description
         // Returns whether the bone is currently visible.
         // -->
-        tagProcessor.registerTag(ElementTag.class, "is_visible", (attr, obj) ->
-                new ElementTag(obj.getBone().isVisible())
+        tagProcessor.registerTag(ElementTag.class, "is_visible", (attr, obj) -> new ElementTag(obj.getBone().isVisible())
         );
 
         // <--[tag]
@@ -159,17 +174,20 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         // @description
         // Returns the parent model of this bone.
         // -->
-        tagProcessor.registerTag(BMModelTag.class, "bm_model", (attr, obj) ->
-                new BMModelTag(obj.tracker)
+        tagProcessor.registerTag(BMModelTag.class, "bm_model", (attr, obj) -> new BMModelTag(obj.tracker)
         );
     }
 
-    @Override public ObjectTag getObjectAttribute(Attribute attribute) {
+    @Override
+    public ObjectTag getObjectAttribute(Attribute attribute) {
         return tagProcessor.getObjectAttribute(this, attribute);
     }
 
     @Override
     public void adjust(Mechanism mechanism) {
+        // All mechanisms are handled by the BMBone API class for cleanliness.
+        // The BMBone class abstracts away direct calls to the tracker and bone.
+
         // <--[mechanism]
         // @object BMBoneTag
         // @name tint
@@ -204,16 +222,13 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         // @example
         // # Show the 'sword' bone only to a specific player
         // - adjust <[my_model].bone[sword]> visible:<list[true|<player>]>
-        // @example
-        // # Hide the 'cape' bone for a list of players
-        // - adjust <[my_model].bone[cape]> visible:<list[false|<server.online_players.exclude[<player>]>]>
         // -->
         if (mechanism.matches("visible")) {
             boolean visible;
             ListTag targets = null;
             if (mechanism.value.canBeType(ListTag.class)) {
                 ListTag list = mechanism.valueAsType(ListTag.class);
-                if (list.isEmpty() ||!list.getObject(0).canBeType(ElementTag.class) ||!list.getObject(0).asElement().isBoolean()) {
+                if (list.isEmpty() || !list.getObject(0).canBeType(ElementTag.class) || !list.getObject(0).asElement().isBoolean()) {
                     mechanism.echoError("If using a ListTag for 'visible', the first element must be a boolean (true/false).");
                     return;
                 }
@@ -288,7 +303,7 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         // This sets the base scale and will be multiplied by any animation scales.
         // @example
         // # Make a bone twice as wide
-        // - adjust <[my_bone]> scale:<location>
+        // - adjust <[my_bone]> scale:<location[2,1,1]>
         // -->
         if (mechanism.matches("scale") && mechanism.requireObject(LocationTag.class)) {
             LocationTag loc = mechanism.valueAsType(LocationTag.class);
@@ -296,10 +311,31 @@ public class BMBoneTag implements ObjectTag, Adjustable {
             boneApi.setScale(scaleVector);
         }
 
+        // <--[mechanism]
+        // @object BMBoneTag
+        // @name rotate
+        // @input QuaternionTag
+        // @plugin DBetterModel
+        // @description
+        // Sets an additional rotation for the bone, which is applied on top of its current animation.
+        // Each use of this mechanism replaces the previous rotation value, it does not add to it.
+        // This allows for dynamic, script-controlled rotation independent of predefined animations.
+        // @example
+        // # Rotate a bone 45 degrees around the world's Y (up/down) axis.
+        // - adjust <[my_bone]> rotate:<location[0,1,0].to_axis_angle_quaternion[<element[45].to_radians>]>
+        // -->
+        if (mechanism.matches("rotate") && mechanism.requireObject(QuaternionTag.class)) {
+            QuaternionTag quatTag = mechanism.valueAsType(QuaternionTag.class);
+            // Construct a JOML Quaternionf from the Denizen QuaternionTag's public fields.
+            // A cast from double to float is required.
+            boneApi.setRotation(new Quaternionf((float) quatTag.x, (float) quatTag.y, (float) quatTag.z, (float) quatTag.w));
+        }
+
         tagProcessor.processMechanism(this, mechanism);
     }
 
-    @Override public void applyProperty(Mechanism mechanism) {
+    @Override
+    public void applyProperty(Mechanism mechanism) {
         Debug.echoError("Cannot apply properties to a BMBoneTag!");
     }
 }

@@ -9,6 +9,7 @@ import kr.toxicity.model.api.util.function.BonePredicate;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public class BMBone {
 
     private final EntityTracker tracker;
     private final RenderedBone bone;
+    private final Quaternionf customRotation = new Quaternionf(); // Identity quaternion
 
     /**
      * Constructs a new BMBone API object.
@@ -32,6 +34,24 @@ public class BMBone {
     public BMBone(EntityTracker tracker, RenderedBone bone) {
         this.tracker = tracker;
         this.bone = bone;
+
+        // Add a persistent rotation modifier that applies our custom rotation.
+        // This ensures we are *adding* to the animation, and by changing the
+        // customRotation field, we can "set" the rotation without adding more modifiers.
+        this.bone.addRotationModifier(BonePredicate.TRUE, animationRotation ->
+                animationRotation.mul(customRotation)
+        );
+    }
+
+    /**
+     * Sets an additional rotation to be applied to the bone, post-animation.
+     * Each call to this method replaces the previous custom rotation.
+     *
+     * @param rotation The Quaternionf representing the desired additional rotation.
+     */
+    public void setRotation(Quaternionf rotation) {
+        this.customRotation.set(rotation);
+        tracker.forceUpdate(true);
     }
 
     /**
@@ -96,14 +116,12 @@ public class BMBone {
         // to avoid resetting other transformations. The offset is replaced if provided.
         TransformedItemStack defaultTis = bone.getGroup().getItemStack();
         Vector3f offset = (localOffset != null) ? localOffset : defaultTis.offset();
-
         TransformedItemStack newTis = new TransformedItemStack(
                 defaultTis.position(),
                 offset,
                 defaultTis.scale(),
                 itemStack
         );
-
         if (bone.itemStack(BonePredicate.TRUE, newTis)) {
             tracker.forceUpdate(true);
         }

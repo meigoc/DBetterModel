@@ -25,7 +25,7 @@ public class DBetterModel extends JavaPlugin {
     private SkinsRestorer skinsRestorerApi;
 
     public static final String BETTERMODEL_VERSION = "1.10.1";
-    public static final String DBETTERMODEL_VERSION = "3.2.0";
+    public static final String DBETTERMODEL_VERSION = "3.3.0";
 
     public static long skinApplyDelay;
     public static boolean enablePluginLogging;
