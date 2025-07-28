@@ -29,17 +29,13 @@ https://github.com/user-attachments/assets/f6b71e51-7977-44ac-b19f-adf491fd4687
 
 # Supported:
 Supports BetterModel v1.10.1, Minecraft 1.21.4, Denizen 1.3.1 (7144)
-| DBetterModel Version | BetterModel Version Supported |
+| BetterModel Version | Latest Supported DBetterModel Version |
 |----------------------|-------------------------------|
-| [3.2.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.2.0) | 1.10.1 |
-| [3.1.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.1.0) | 1.10.1 |
-| [3.0.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.0.0) | 1.10.0–1.10.1 |
-| [2.1.0](https://github.com/meigoc/DBetterModel/releases/tag/v2.1.0) | 1.9.0–1.9.3 |
-| [2.0.1](https://github.com/meigoc/DBetterModel/releases/tag/v2.0.1) | 1.8.0–1.8.1 |
-| [2.0.0](https://github.com/meigoc/DBetterModel/releases/tag/v2.0)   | 1.9.0        |
-| [1.1.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.1.0) | 1.5.5        |
-| [1.0.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.0.0) | 1.5.1        |
-
+| 1.10.0-1.10.1 | [3.3.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.3.0) |
+| 1.9.0-1.9.3 | [2.1.0](https://github.com/meigoc/DBetterModel/releases/tag/v2.1.0) |
+| 1.8.0-1.8.1 | [2.0.1](https://github.com/meigoc/DBetterModel/releases/tag/v2.0.1) |
+| 1.5.5 | [1.1.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.1.0) |
+| 1.5.1 | [1.0.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.0.0) |
 
 # Docs (3.2.0)
 
