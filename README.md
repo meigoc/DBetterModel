@@ -2,11 +2,11 @@
 
 <img width="145" height="157" alt="dbettermodel" src="https://github.com/user-attachments/assets/ed2022f5-3a9d-44d2-90ec-e855702fc400" />
 
-  
-**DBetterModel 3.2.0: Adds interop between BetterModel and Denizen!**
 
-[![](https://img.shields.io/badge/SpigotMC-ED8106?style=for-the-badge&logo=SpigotMC&logoColor=white)](https://www.spigotmc.org/resources/dbettermodel.127341/) 
-[![](https://img.shields.io/badge/Modrinth-00AF5C?style=for-the-badge&logo=Modrinth&logoColor=white)](https://modrinth.com/plugin/dbettermodel) 
+**DBetterModel 3.4.0: Adds interop between BetterModel and Denizen!**
+
+[![](https://img.shields.io/badge/SpigotMC-ED8106?style=for-the-badge&logo=SpigotMC&logoColor=white)](https://www.spigotmc.org/resources/dbettermodel.127341/)
+[![](https://img.shields.io/badge/Modrinth-00AF5C?style=for-the-badge&logo=Modrinth&logoColor=white)](https://modrinth.com/plugin/dbettermodel)
 [![](https://img.shields.io/badge/Hangar-185DEB?style=for-the-badge&logo=Hangar&logoColor=white)](https://hangar.papermc.io/meigoc/DBetterModel)
 
 [![CodeFactor](https://www.codefactor.io/repository/github/meigoc/DBetterModel/badge?style=flat-square)](https://www.codefactor.io/repository/github/meigoc/DBetterModel)
@@ -28,20 +28,17 @@ https://github.com/user-attachments/assets/f6b71e51-7977-44ac-b19f-adf491fd4687
 
 
 # Supported:
-Supports BetterModel v1.10.1, Minecraft 1.21.4, Denizen 1.3.1 (7144)
-| DBetterModel Version | BetterModel Version Supported |
+Supports BetterModel v1.10.2, Minecraft 1.21.4, Denizen 1.3.1 (7144)
+| BetterModel Version | Latest Supported DBetterModel Version |
 |----------------------|-------------------------------|
-| [3.2.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.2.0) | 1.10.1 |
-| [3.1.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.1.0) | 1.10.1 |
-| [3.0.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.0.0) | 1.10.0–1.10.1 |
-| [2.1.0](https://github.com/meigoc/DBetterModel/releases/tag/v2.1.0) | 1.9.0–1.9.3 |
-| [2.0.1](https://github.com/meigoc/DBetterModel/releases/tag/v2.0.1) | 1.8.0–1.8.1 |
-| [2.0.0](https://github.com/meigoc/DBetterModel/releases/tag/v2.0)   | 1.9.0        |
-| [1.1.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.1.0) | 1.5.5        |
-| [1.0.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.0.0) | 1.5.1        |
+| 1.10.2 | [3.4.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.4.0)  |
+| 1.10.0-1.10.1 | [3.3.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.3.0) |
+| 1.9.0-1.9.3 | [2.1.0](https://github.com/meigoc/DBetterModel/releases/tag/v2.1.0) |
+| 1.8.0-1.8.1 | [2.0.1](https://github.com/meigoc/DBetterModel/releases/tag/v2.0.1) |
+| 1.5.5 | [1.1.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.1.0) |
+| 1.5.1 | [1.0.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.0.0) |
 
-
-# Docs (3.2.0)
+# Docs (3.4.0)
 
 -----
 
@@ -161,19 +158,27 @@ Represents a specific model instance attached to an entity.
 
 ### BMBoneTag
 Represents a single bone within a specific model instance on an entity.
-
-- **Prefix**: `bmbone`
-- **Format**: The identity format is `<uuid>,<model_name>,<bone_name>` (e.g., `bmbone@dfc67056-b15d-45dd-b239-482d92e482e5,dummy,head`).
-- **Tags**:
-  - `<BMBoneTag.name>`: Returns the name of the bone.
-  - `<BMBoneTag.global_position>`: Returns the bone's current position in the world as a `LocationTag`.
-  - `<BMBoneTag.is_visible>`: Returns an `ElementTag(Boolean)` indicating whether the bone is currently visible.
-  - `<BMBoneTag.bm_model>`: Returns the parent `BMModelTag` of this bone.
-- **Mechanisms**:
-  - `tint:<color>`: Applies a color tint to the bone's item. The color is specified as a single integer representing the RGB value (e.g., red is 16711680). https://www.mathsisfun.com/hexadecimal-decimal-colors.html
-  - `scale:<location>`: Adjusts the scale of the bone.
-  - **visible** `<ElementTag(Boolean)>` or `<ListTag>`
-      - Sets the visibility of the bone for everyone (`Boolean`) or for specific players (`ListTag` with first element boolean and subsequent PlayerTags).
-  - **item** `<ListTag>`
-      - Sets the item displayed by this bone. First element must be an `ItemTag`; optional second element is a `LocationTag` for local offset.
- 
+* **Prefix**: `bmbone`
+* **Format**: `<uuid>,<model_name>,<bone_name>`
+  (e.g., `bmbone@dfc67056-b15d-45dd-b239-482d92e482e5,dummy,head`)
+* **Tags**:
+  * `<BMBoneTag.name>`: Returns the bone's name (`ElementTag`).
+  * `<BMBoneTag.global_position>`: Returns the bone's world position (`LocationTag`).
+  * `<BMBoneTag.is_visible>`: Returns whether the bone is visible (`ElementTag(Boolean)`).
+  * `<BMBoneTag.bm_model>`: Returns the parent model (`BMModelTag`).
+* **Mechanisms**:
+  * `tint:<ElementTag(Integer)>`
+    Applies an RGB color tint to the bone's item.
+    [https://www.mathsisfun.com/hexadecimal-decimal-colors.html](https://www.mathsisfun.com/hexadecimal-decimal-colors.html)
+  * `scale:<LocationTag>`
+    Sets the scale vector of the bone.
+  * `visible:<ElementTag(Boolean)>` or `ListTag`
+    Sets visibility for all or specific players.
+  * `item:<ItemTag>`
+    Sets the item displayed by the bone.
+  * `offset:<LocationTag>`
+    Sets the local offset of the bone's item.
+  * `rotate:<QuaternionTag>`
+    Applies an additional rotation to the bone.
+  * `view_range:<ElementTag(Decimal)>`
+    Sets the render distance for the bone in blocks.

@@ -6,6 +6,8 @@ import com.denizenscript.denizencore.objects.ObjectFetcher;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
 import com.mojang.authlib.GameProfile;
 import kr.toxicity.model.api.BetterModel;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.openproject.dbettermodel.commands.*;
 import net.openproject.dbettermodel.events.BMReloadEndEvent;
 import net.openproject.dbettermodel.events.BMReloadStartEvent;
@@ -24,11 +26,18 @@ public class DBetterModel extends JavaPlugin {
     public static DBetterModel instance;
     private SkinsRestorer skinsRestorerApi;
 
-    public static final String BETTERMODEL_VERSION = "1.10.1";
-    public static final String DBETTERMODEL_VERSION = "3.3.0";
+    public static final String BETTERMODEL_VERSION = "1.10.2";
+    public static final String DBETTERMODEL_VERSION = "3.4.0";
 
     public static long skinApplyDelay;
     public static boolean enablePluginLogging;
+
+    @Override
+    public void onLoad() {
+        try {
+            getComponentLogger().info(Component.text("Thank for using!", NamedTextColor.GREEN));
+        } catch (Exception ignored) {}
+    }
 
     @Override
     public void onEnable() {

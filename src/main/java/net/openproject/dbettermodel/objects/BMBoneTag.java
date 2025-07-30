@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 
 public class BMBoneTag implements ObjectTag, Adjustable {
 
-    // <--[ObjectType]
+    // <--
     // @name BMBoneTag
     // @prefix bmbone
     // @base ElementTag
@@ -42,7 +42,6 @@ public class BMBoneTag implements ObjectTag, Adjustable {
     // @plugin DBetterModel
     // @description
     // Represents a single bone within a specific model instance on an entity.
-    //
     // -->
 
     public static final String PREFIX = "bmbone";
@@ -59,14 +58,11 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         String body = string.substring(PREFIX.length() + 1);
         String[] parts = body.split(",", 3);
         if (parts.length < 3) return null;
-
         String entityId = parts[0];
         String modelName = parts[1];
         String boneName = parts[2];
-
         EntityTag entityTag = EntityTag.valueOf(entityId, context);
         if (entityTag == null || entityTag.getBukkitEntity() == null) return null;
-
         return BetterModel.registry(entityTag.getBukkitEntity())
                 .map(registry -> registry.tracker(modelName))
                 .map(tracker -> Optional.ofNullable(tracker.bone(boneName))
@@ -86,7 +82,7 @@ public class BMBoneTag implements ObjectTag, Adjustable {
     public BMBoneTag(EntityTracker tracker, RenderedBone bone) {
         this.tracker = tracker;
         this.bone = bone;
-        this.boneApi = new BMBone(tracker, bone);
+        this.boneApi = BMBone.getOrCreate(tracker, bone);
     }
 
     public RenderedBone getBone() {
@@ -256,40 +252,35 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         // <--[mechanism]
         // @object BMBoneTag
         // @name item
-        // @input ListTag
+        // @input ItemTag
         // @plugin DBetterModel
         // @description
-        // Sets the item displayed by this bone.
-        // The input must be a ListTag. The first element must be a valid ItemTag.
-        // Optionally, a second element can be a LocationTag to specify a local offset.
+        // Sets the item displayed by this bone, preserving its current offset and scale.
         // @example
         // # Set the bone to display a diamond sword
-        // - adjust <[my_bone]> item:<list[<item[diamond_sword]>]>
-        // @example
-        // # Set the bone to display a stone block, shifted up by 0.5 blocks
-        // - adjust <[my_bone]> item:<list[<item[stone]>|<location[0,0.5,0]>]>
+        // - adjust <[my_bone]> item:<item[diamond_sword]>
         // -->
-        if (mechanism.matches("item") && mechanism.requireObject("Mechanism 'item' must have a ListTag value.", ListTag.class)) {
-            ListTag list = mechanism.valueAsType(ListTag.class);
-            if (list.isEmpty()) {
-                Debug.echoError("The ListTag for 'item' mechanism must not be empty.");
-                return;
-            }
-            ItemTag itemTag = list.getObject(0).asType(ItemTag.class, mechanism.context);
-            if (itemTag == null) {
-                Debug.echoError("The first element of the list must be a valid ItemTag.");
-                return;
-            }
-            Vector3f localOffset = null;
-            if (list.size() > 1) {
-                LocationTag loc = list.getObject(1).asType(LocationTag.class, mechanism.context);
-                if (loc == null) {
-                    Debug.echoError("The second element of the list, if present, must be a LocationTag for the offset.");
-                    return;
-                }
-                localOffset = new Vector3f((float) loc.getX(), (float) loc.getY(), (float) loc.getZ());
-            }
-            boneApi.setItem(itemTag.getItemStack(), localOffset);
+        if (mechanism.matches("item") && mechanism.requireObject(ItemTag.class)) {
+            ItemTag itemTag = mechanism.valueAsType(ItemTag.class);
+            boneApi.setItem(itemTag.getItemStack());
+        }
+
+        // <--[mechanism]
+        // @object BMBoneTag
+        // @name offset
+        // @input LocationTag
+        // @plugin DBetterModel
+        // @description
+        // Sets the local offset for the bone's displayed item, preserving its current item and scale.
+        // The input is a LocationTag interpreted as a vector.
+        // @example
+        // # Shift the displayed item up by 0.5 blocks
+        // - adjust <[my_bone]> offset:<location[0,0.5,0]>
+        // -->
+        if (mechanism.matches("offset") && mechanism.requireObject(LocationTag.class)) {
+            LocationTag loc = mechanism.valueAsType(LocationTag.class);
+            Vector3f offsetVector = new Vector3f((float) loc.getX(), (float) loc.getY(), (float) loc.getZ());
+            boneApi.setOffset(offsetVector);
         }
 
         // <--[mechanism]
@@ -322,13 +313,27 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         // This allows for dynamic, script-controlled rotation independent of predefined animations.
         // @example
         // # Rotate a bone 45 degrees around the world's Y (up/down) axis.
-        // - adjust <[my_bone]> rotate:<location[0,1,0].to_axis_angle_quaternion[<element[45].to_radians>]>
+        // - adjust <[my_bone]> rotate:<quaternion[0,0.382,0,0.923]>
         // -->
         if (mechanism.matches("rotate") && mechanism.requireObject(QuaternionTag.class)) {
             QuaternionTag quatTag = mechanism.valueAsType(QuaternionTag.class);
-            // Construct a JOML Quaternionf from the Denizen QuaternionTag's public fields.
-            // A cast from double to float is required.
             boneApi.setRotation(new Quaternionf((float) quatTag.x, (float) quatTag.y, (float) quatTag.z, (float) quatTag.w));
+        }
+
+        // <--[mechanism]
+        // @object BMBoneTag
+        // @name view_range
+        // @input ElementTag(Decimal)
+        // @plugin DBetterModel
+        // @description
+        // Sets the view range (render distance) for this specific bone in blocks.
+        // This is useful for hiding parts of a model in F5 view by setting a small view range (e.g., 1.0 or 1.5).
+        // @example
+        // # Make the 'head' bone only visible from very close up
+        // - adjust <[my_model].bone[head]> view_range:1.5
+        // -->
+        if (mechanism.matches("view_range") && mechanism.requireFloat()) {
+            boneApi.setViewRange(mechanism.getValue().asFloat());
         }
 
         tagProcessor.processMechanism(this, mechanism);

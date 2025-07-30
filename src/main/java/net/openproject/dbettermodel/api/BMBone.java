@@ -8,44 +8,73 @@ import kr.toxicity.model.api.util.TransformedItemStack;
 import kr.toxicity.model.api.util.function.BonePredicate;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Represents a high-level API wrapper for a single bone of a BetterModel model.
- * This class simplifies common bone manipulations by abstracting away the underlying
- * RenderedBone and EntityTracker interactions.
+ * API wrapper for a model's bone, now with caching to preserve state across multiple Denizen script calls.
  */
 public class BMBone {
 
+    /**
+     * Cache to store a single instance of BMBone for each unique model bone.
+     * This solves the state-loss issue caused by Denizen re-creating tags on every command.
+     */
+    private static final Map<String, BMBone> boneApiCache = new ConcurrentHashMap<>();
+
     private final EntityTracker tracker;
     private final RenderedBone bone;
-    private final Quaternionf customRotation = new Quaternionf(); // Identity quaternion
+    private final Quaternionf customRotation = new Quaternionf();
+
+    private TransformedItemStack currentTransformedItemStack;
 
     /**
-     * Constructs a new BMBone API object.
-     *
-     * @param tracker The entity tracker for the model this bone belongs to.
-     * @param bone    The underlying RenderedBone object from the BetterModel API.
+     * Private constructor to enforce the use of the factory method.
+     * @param tracker The entity tracker for the model.
+     * @param bone The underlying RenderedBone object.
      */
-    public BMBone(EntityTracker tracker, RenderedBone bone) {
+    private BMBone(EntityTracker tracker, RenderedBone bone) {
         this.tracker = tracker;
         this.bone = bone;
+        this.currentTransformedItemStack = bone.getGroup().getItemStack().copy();
 
-        // Add a persistent rotation modifier that applies our custom rotation.
-        // This ensures we are *adding* to the animation, and by changing the
-        // customRotation field, we can "set" the rotation without adding more modifiers.
         this.bone.addRotationModifier(BonePredicate.TRUE, animationRotation ->
-                animationRotation.mul(customRotation)
-        );
+                animationRotation.mul(customRotation));
     }
 
     /**
+     * Factory method to get or create a BMBone instance.
+     * Ensures that only one BMBone object exists per actual bone, preserving its state.
+     *
+     * @param tracker The entity tracker.
+     * @param bone The model bone.
+     * @return The cached or newly created BMBone instance.
+     */
+    public static BMBone getOrCreate(EntityTracker tracker, RenderedBone bone) {
+        String uniqueKey = tracker.registry().uuid().toString() + "," + tracker.name() + "," + bone.getName().name();
+        return boneApiCache.computeIfAbsent(uniqueKey, k -> new BMBone(tracker, bone));
+    }
+
+    /**
+     * IMPORTANT: Clears the cache for a specific model tracker.
+     * This must be called when a model is removed from an entity to prevent memory leaks.
+     *
+     * @param tracker The tracker of the model being removed.
+     */
+    public static void clearCacheFor(EntityTracker tracker) {
+        String prefix = tracker.registry().uuid().toString() + "," + tracker.name() + ",";
+        boneApiCache.keySet().removeIf(key -> key.startsWith(prefix));
+    }
+
+
+    /**
      * Sets an additional rotation to be applied to the bone, post-animation.
-     * Each call to this method replaces the previous custom rotation.
+     * Each call replaces the previous custom rotation.
      *
      * @param rotation The Quaternionf representing the desired additional rotation.
      */
@@ -57,7 +86,7 @@ public class BMBone {
     /**
      * Applies a color tint to the bone's item.
      *
-     * @param color The color as a single integer representing the RGB value (e.g., 0xFF0000 for red).
+     * @param color The color as an integer (e.g., 0xFF0000 for red).
      */
     public void setTint(int color) {
         if (bone.tint(BonePredicate.TRUE, color)) {
@@ -78,14 +107,14 @@ public class BMBone {
 
     /**
      * Sets the visibility of the bone for a specific list of players.
-     * Note: This is a temporary, packet-based change and may reset if the player reloads the model.
+     * Note: This is a temporary, packet-based change.
      *
-     * @param visible True to show the bone to the players, false to hide it.
-     * @param players The list of players to whom the visibility change should apply.
+     * @param visible True to show the bone, false to hide it.
+     * @param players The list of players for this visibility change.
      */
     public void setVisible(boolean visible, List<Player> players) {
         if (players == null || players.isEmpty()) {
-            setVisible(visible); // Delegate to global method
+            setVisible(visible);
             return;
         }
         ModelDisplay display = bone.getDisplay();
@@ -106,44 +135,68 @@ public class BMBone {
     }
 
     /**
-     * Sets the item displayed by this bone.
-     *
-     * @param itemStack   The ItemStack to display.
-     * @param localOffset An optional local translation to apply to the item.
+     * Internal helper method to apply the current TransformedItemStack to the bone.
      */
-    public void setItem(ItemStack itemStack, @Nullable Vector3f localOffset) {
-        // Since RenderedBone#getItemStack is unavailable, we use the default properties from the bone's group
-        // to avoid resetting other transformations. The offset is replaced if provided.
-        TransformedItemStack defaultTis = bone.getGroup().getItemStack();
-        Vector3f offset = (localOffset != null) ? localOffset : defaultTis.offset();
-        TransformedItemStack newTis = new TransformedItemStack(
-                defaultTis.position(),
-                offset,
-                defaultTis.scale(),
-                itemStack
-        );
-        if (bone.itemStack(BonePredicate.TRUE, newTis)) {
+    private void updateItemStack() {
+        if (bone.itemStack(BonePredicate.TRUE, this.currentTransformedItemStack)) {
             tracker.forceUpdate(true);
         }
     }
 
     /**
-     * Sets the scale of the bone's displayed item.
-     * This modifies the base scale of the item, which is then multiplied by animation scales.
+     * Sets the item displayed by this bone, preserving the current offset and scale.
      *
-     * @param scale A Vector3f representing the new scale (x, y, z).
+     * @param itemStack The ItemStack to display.
      */
-    public void setScale(Vector3f scale) {
-        // Since RenderedBone#getItemStack is unavailable, we use the default item and offset
-        // from the bone's group to avoid losing the item entirely when scaling.
-        TransformedItemStack defaultTis = bone.getGroup().getItemStack();
-        TransformedItemStack newTis = new TransformedItemStack(
-                defaultTis.position(),
-                defaultTis.offset(),
-                scale,
-                defaultTis.itemStack()
+    public void setItem(@NotNull ItemStack itemStack) {
+        this.currentTransformedItemStack = new TransformedItemStack(
+                this.currentTransformedItemStack.position(),
+                this.currentTransformedItemStack.offset(),
+                this.currentTransformedItemStack.scale(),
+                itemStack
         );
-        if (bone.itemStack(BonePredicate.TRUE, newTis)) {
+        updateItemStack();
+    }
+
+    /**
+     * Sets the local offset of the bone's displayed item, preserving the current item and scale.
+     *
+     * @param localOffset A Vector3f representing the new local offset.
+     */
+    public void setOffset(@NotNull Vector3f localOffset) {
+        this.currentTransformedItemStack = new TransformedItemStack(
+                this.currentTransformedItemStack.position(),
+                localOffset,
+                this.currentTransformedItemStack.scale(),
+                this.currentTransformedItemStack.itemStack()
+        );
+        updateItemStack();
+    }
+
+    /**
+     * Sets the scale of the bone's displayed item, preserving the current item and offset.
+     *
+     * @param scale A Vector3f representing the new scale.
+     */
+    public void setScale(@NotNull Vector3f scale) {
+        this.currentTransformedItemStack = new TransformedItemStack(
+                this.currentTransformedItemStack.position(),
+                this.currentTransformedItemStack.offset(),
+                scale,
+                this.currentTransformedItemStack.itemStack()
+        );
+        updateItemStack();
+    }
+
+    /**
+     * Sets the view range for the bone's display entity.
+     *
+     * @param range The distance in blocks at which the bone will be visible.
+     */
+    public void setViewRange(float range) {
+        ModelDisplay display = bone.getDisplay();
+        if (display != null) {
+            display.viewRange(range);
             tracker.forceUpdate(true);
         }
     }
