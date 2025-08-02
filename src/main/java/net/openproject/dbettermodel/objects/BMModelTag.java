@@ -5,6 +5,7 @@ import com.denizenscript.denizencore.objects.Adjustable;
 import com.denizenscript.denizencore.objects.Fetchable;
 import com.denizenscript.denizencore.objects.Mechanism;
 import com.denizenscript.denizencore.objects.ObjectTag;
+import com.denizenscript.denizencore.objects.core.DurationTag;
 import com.denizenscript.denizencore.objects.core.ElementTag;
 import com.denizenscript.denizencore.objects.core.MapTag;
 import com.denizenscript.denizencore.tags.Attribute;
@@ -143,6 +144,24 @@ public class BMModelTag implements ObjectTag, Adjustable {
                     .map(bone -> new BMBoneTag(obj.getTracker(), bone))
                     .orElse(null);
         });
+
+        // <--[tag]
+        // @attribute <BMModelTag.get_animation_duration[<name>]>
+        // @returns DurationTag
+        // @plugin DBetterModel
+        // @description
+        // Returns the total duration of the specified animation.
+        // -->
+        tagProcessor.registerTag(DurationTag.class, "get_animation_duration", (attr, obj) -> {
+            if (!attr.hasContext(1)) {
+                attr.echoError("The get_animation_duration tag must have an animation name specified.");
+                return null;
+            }
+            String animationName = attr.getContext(1);
+            return obj.getTracker().renderer().animation(animationName)
+                    .map(anim -> new DurationTag(anim.length()))
+                    .orElse(null);
+        });
     }
 
     @Override public ObjectTag getObjectAttribute(Attribute attribute) {
@@ -150,6 +169,48 @@ public class BMModelTag implements ObjectTag, Adjustable {
     }
 
     @Override public void adjust(Mechanism mechanism) {
+        // <--[mechanism]
+        // @object BMModelTag
+        // @name interpolation_duration
+        // @input DurationTag
+        // @plugin DBetterModel
+        // @description
+        // Sets the movement interpolation duration for all bones in the model.
+        // This affects how smoothly the model transitions between animation keyframes.
+        // @tags
+        // <BMModelTag.interpolation_duration>
+        // @example
+        // # Set the interpolation duration to 10 ticks for a smoother look
+        // - adjust <[my_model]> interpolation_duration:10t
+        // -->
+        if (mechanism.matches("interpolation_duration") && mechanism.requireObject(DurationTag.class)) {
+            int durationTicks = mechanism.valueAsType(DurationTag.class).getTicksAsInt();
+            tracker.getPipeline().bones().forEach(bone -> bone.moveDuration(durationTicks));
+        }
+
+        // <--[mechanism]
+        // @object BMModelTag
+        // @name force_update
+        // @input ElementTag(Boolean)
+        // @plugin DBetterModel
+        // @description
+        // Forces an immediate visual update of the model for all viewers.
+        // This is useful after making manual adjustments to bones (like tint, item, rotation)
+        // to ensure the changes are sent to the client immediately.
+        // Can be used without a value (defaults to true).
+        // @tags
+        // none
+        // @example
+        // # After changing a bone's item, force an update to make it visible
+        // - adjust <[my_model].bone[sword]> item:<item[diamond_sword]>
+        // - adjust <[my_model]> force_update
+        // -->
+        if (mechanism.matches("force_update")) {
+            if (!mechanism.hasValue() || mechanism.requireBoolean()) {
+                tracker.forceUpdate(true);
+            }
+        }
+
         tagProcessor.processMechanism(this, mechanism);
     }
 

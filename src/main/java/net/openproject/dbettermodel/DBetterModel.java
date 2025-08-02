@@ -24,10 +24,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class DBetterModel extends JavaPlugin {
 
     public static DBetterModel instance;
-    private SkinsRestorer skinsRestorerApi;
 
-    public static final String BETTERMODEL_VERSION = "1.10.2";
-    public static final String DBETTERMODEL_VERSION = "3.4.0";
+    public static final String BETTERMODEL_VERSION = "1.10.3-SNAPSHOT-278";
+    public static final String DBETTERMODEL_VERSION = "3.5.0";
 
     public static long skinApplyDelay;
     public static boolean enablePluginLogging;
@@ -71,8 +70,8 @@ public class DBetterModel extends JavaPlugin {
         }
 
         try {
-            this.skinsRestorerApi = SkinsRestorerProvider.get();
-            this.skinsRestorerApi.getEventBus().subscribe(this, SkinApplyEvent.class, event -> {
+            SkinsRestorer skinsRestorerApi = SkinsRestorerProvider.get();
+            skinsRestorerApi.getEventBus().subscribe(this, SkinApplyEvent.class, event -> {
                 Player player = event.getPlayer(Player.class);
                 if (player == null) {
                     return;
