@@ -146,11 +146,38 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         // @plugin DBetterModel
         // @description
         // Returns the bone's current position in the world.
+        // @deprecated Use world_location instead.
         // -->
         tagProcessor.registerTag(LocationTag.class, "global_position", (attr, obj) -> {
             Vector3f worldPos = obj.getBone().worldPosition();
             Vector pos = new Vector(worldPos.x(), worldPos.y(), worldPos.z());
             return new LocationTag(obj.tracker.sourceEntity().getWorld(), pos.getX(), pos.getY(), pos.getZ());
+        });
+
+        // <--[tag]
+        // @attribute <BMBoneTag.world_location>
+        // @returns LocationTag
+        // @plugin DBetterModel
+        // @description
+        // Returns the bone's precise, real-time location in the world.
+        // This position accounts for all entity and animation transformations.
+        // -->
+        tagProcessor.registerTag(LocationTag.class, "world_location", (attr, obj) -> {
+            Vector3f worldPos = obj.getBone().worldPosition();
+            return new LocationTag(obj.tracker.sourceEntity().getWorld(), worldPos.x(), worldPos.y(), worldPos.z());
+        });
+
+        // <--[tag]
+        // @attribute <BMBoneTag.world_rotation>
+        // @returns QuaternionTag
+        // @plugin DBetterModel
+        // @description
+        // Returns the bone's precise, real-time rotation in world space as a Quaternion.
+        // This rotation accounts for all entity and animation transformations.
+        // -->
+        tagProcessor.registerTag(QuaternionTag.class, "world_rotation", (attr, obj) -> {
+            Quaternionf worldRot = obj.getBone().worldRotation();
+            return new QuaternionTag(worldRot.x, worldRot.y, worldRot.z, worldRot.w);
         });
 
         // <--[tag]
