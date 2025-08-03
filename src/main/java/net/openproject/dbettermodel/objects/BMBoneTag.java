@@ -176,7 +176,8 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         // This rotation accounts for all entity and animation transformations.
         // -->
         tagProcessor.registerTag(QuaternionTag.class, "world_rotation", (attr, obj) -> {
-            Quaternionf worldRot = obj.getBone().worldRotation();
+            Vector3f eulerAngles = obj.getBone().worldRotation();
+            Quaternionf worldRot = kr.toxicity.model.api.util.MathUtil.toQuaternion(eulerAngles);
             return new QuaternionTag(worldRot.x, worldRot.y, worldRot.z, worldRot.w);
         });
 

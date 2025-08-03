@@ -44,7 +44,7 @@ public class BMBone {
         this.currentTransformedItemStack = bone.getGroup().getItemStack().copy();
 
         this.bone.addRotationModifier(BonePredicate.TRUE, animationRotation ->
-                animationRotation.mul(customRotation));
+                customRotation);
     }
 
     /**
