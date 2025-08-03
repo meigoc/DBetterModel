@@ -25,7 +25,7 @@ public class DBetterModel extends JavaPlugin {
 
     public static DBetterModel instance;
 
-    public static final String BETTERMODEL_VERSION = "1.10.3-SNAPSHOT-278";
+    public static final String BETTERMODEL_VERSION = "1.10.3";
     public static final String DBETTERMODEL_VERSION = "3.5.0";
 
     public static long skinApplyDelay;

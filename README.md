@@ -168,8 +168,7 @@ Represents a single bone within a specific model instance on an entity.
   * `<BMBoneTag.bm_model>`: Returns the parent model (`BMModelTag`).
 * **Mechanisms**:
   * `tint:<ElementTag(Integer)>`
-    Applies an RGB color tint to the bone's item.
-    [https://www.mathsisfun.com/hexadecimal-decimal-colors.html](https://www.mathsisfun.com/hexadecimal-decimal-colors.html)
+    Applies an RGB color tint to the bone's item. (<ColorTag.rgb_integer>)
   * `scale:<LocationTag>`
     Sets the scale vector of the bone.
   * `visible:<ElementTag(Boolean)>` or `ListTag`
