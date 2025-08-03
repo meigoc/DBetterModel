@@ -7,6 +7,7 @@ import com.denizenscript.denizencore.objects.Mechanism;
 import com.denizenscript.denizencore.objects.ObjectTag;
 import com.denizenscript.denizencore.objects.core.DurationTag;
 import com.denizenscript.denizencore.objects.core.ElementTag;
+import com.denizenscript.denizencore.objects.core.ListTag;
 import com.denizenscript.denizencore.objects.core.MapTag;
 import com.denizenscript.denizencore.tags.Attribute;
 import com.denizenscript.denizencore.tags.ObjectTagProcessor;
@@ -15,9 +16,11 @@ import com.denizenscript.denizencore.utilities.CoreUtilities;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
 import kr.toxicity.model.api.BetterModel;
 import kr.toxicity.model.api.bone.RenderedBone;
+import kr.toxicity.model.api.data.renderer.ModelRenderer;
 import kr.toxicity.model.api.tracker.EntityTracker;
 
 import java.util.Optional;
+import java.util.Set;
 
 public class BMModelTag implements ObjectTag, Adjustable {
 
@@ -161,6 +164,27 @@ public class BMModelTag implements ObjectTag, Adjustable {
             return obj.getTracker().renderer().animation(animationName)
                     .map(anim -> new DurationTag(anim.length()))
                     .orElse(null);
+        });
+
+        // <--[tag]
+        // @attribute <BMModelTag.animations>
+        // @returns ListTag
+        // @plugin DBetterModel
+        // @description
+        // Returns a ListTag of all available animation names for this model.
+        // -->
+        tagProcessor.registerTag(ListTag.class, "animations", (attr, obj) -> {
+            ModelRenderer renderer = obj.getTracker().getPipeline().getParent();
+            if (renderer == null) {
+                attr.echoError("Could not retrieve model renderer for " + obj.identify());
+                return null;
+            }
+            Set<String> animationNames = renderer.animations();
+            ListTag list = new ListTag();
+            for (String name : animationNames) {
+                list.add(name);
+            }
+            return list;
         });
     }
 

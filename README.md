@@ -31,6 +31,7 @@ https://github.com/user-attachments/assets/f6b71e51-7977-44ac-b19f-adf491fd4687
 Supports BetterModel v1.10.2, Minecraft 1.21.4, Denizen 1.3.1 (7144)
 | BetterModel Version | Latest Supported DBetterModel Version |
 |----------------------|-------------------------------|
+| 1.10.3 | 3.5.0 (In development) |
 | 1.10.2 | [3.4.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.4.0)  |
 | 1.10.0-1.10.1 | [3.3.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.3.0) |
 | 1.9.0-1.9.3 | [2.1.0](https://github.com/meigoc/DBetterModel/releases/tag/v2.1.0) |
@@ -38,7 +39,7 @@ Supports BetterModel v1.10.2, Minecraft 1.21.4, Denizen 1.3.1 (7144)
 | 1.5.5 | [1.1.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.1.0) |
 | 1.5.1 | [1.0.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.0.0) |
 
-# Docs (3.4.0)
+# Docs (3.5.0 in dev)
 
 -----
 
@@ -155,6 +156,13 @@ Represents a specific model instance attached to an entity.
   - `<BMModelTag.bm_entity>`: Returns the parent `BMEntityTag` of this model.
   - `<BMModelTag.bones>`: Returns a `MapTag` of all bones in the model, with the bone name as the key and the `BMBoneTag` as the value.
   - `<BMModelTag.bone[<name>]>`: Returns the `BMBoneTag` for the bone with the specified name from the model.
+  - `<BMModelTag.get_animation_duration[<name>]>`: Returns the total duration of the specified animation.
+  - `<BMModelTag.animations>`: Returns a ListTag of all available animation names for this model.
+* **Mechanisms**:
+  * `interpolation_duration:<DurationTag>`
+    Sets the movement interpolation duration for all bones in the model.
+  * `force_update`
+    Forces an immediate visual update of the model for all viewers.
 
 ### BMBoneTag
 Represents a single bone within a specific model instance on an entity.
@@ -163,7 +171,8 @@ Represents a single bone within a specific model instance on an entity.
   (e.g., `bmbone@dfc67056-b15d-45dd-b239-482d92e482e5,dummy,head`)
 * **Tags**:
   * `<BMBoneTag.name>`: Returns the bone's name (`ElementTag`).
-  * `<BMBoneTag.global_position>`: Returns the bone's world position (`LocationTag`).
+  * `<BMBoneTag.world_location>`: Returns the bone's world position (`LocationTag`).
+  * `<BMBoneTag.world_rotation>`: Returns the bone's precise, real-time rotation in world space as a Quaternion. (`QuaternionTag`).
   * `<BMBoneTag.is_visible>`: Returns whether the bone is visible (`ElementTag(Boolean)`).
   * `<BMBoneTag.bm_model>`: Returns the parent model (`BMModelTag`).
 * **Mechanisms**:
