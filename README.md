@@ -59,7 +59,7 @@ Adds or removes a model from an entity. This is necessary for entities that can 
 ### BMState
 Plays or stops a layered animation state on a specific model on an entity, optionally limited to specific bones. This command supports multiple concurrent animations by allowing you to apply animations to specific parts of the model.
 
-- **Syntax**: `bmstate entity:<entity> model:<model> state:<animation> (bones:<list>) (loop:<once|loop|hold>) (speed:<#.#>) (lerp_frames:<#>) (remove)`
+- **Syntax**: `bmstate entity:<entity> model:<model> state:<animation> (bones:<list>) (loop:<once|loop|hold>) (speed:<#.#>) (lerp_duration:<duration>) (remove)`
 - **Arguments**:
   - `bones:<list>`: An optional list of bone names to which this animation should be applied. If not provided, the animation applies to the entire model.
   - `loop`: Sets the playback mode. It can be:
