@@ -1,8 +1,8 @@
-package net.openproject.dbettermodel.util;
+package meigo.dbettermodel.util;
 
 import com.denizenscript.denizencore.scripts.ScriptEntry;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
-import net.openproject.dbettermodel.DBetterModel;
+import meigo.dbettermodel.DBetterModel;
 
 /**
  * A utility for conditional logging that respects both global Denizen settings

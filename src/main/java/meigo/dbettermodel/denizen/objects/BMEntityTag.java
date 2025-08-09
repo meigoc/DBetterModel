@@ -1,4 +1,4 @@
-package net.openproject.dbettermodel.objects;
+package meigo.dbettermodel.denizen.objects;
 
 import com.denizenscript.denizen.objects.EntityTag;
 import com.denizenscript.denizencore.objects.Adjustable;

@@ -1,4 +1,4 @@
-package net.openproject.dbettermodel.commands;
+package meigo.dbettermodel.denizen.commands;
 
 import com.denizenscript.denizen.objects.EntityTag;
 import com.denizenscript.denizen.objects.PlayerTag;
@@ -16,7 +16,7 @@ import kr.toxicity.model.api.manager.SkinManager;
 import kr.toxicity.model.api.player.PlayerLimb;
 import kr.toxicity.model.api.tracker.EntityTracker;
 import kr.toxicity.model.api.util.TransformedItemStack;
-import net.openproject.dbettermodel.DBetterModel;
+import meigo.dbettermodel.DBetterModel;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemDisplay;
@@ -24,7 +24,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import java.util.Arrays;
 import java.util.Optional;
-import net.openproject.dbettermodel.util.DBMDebug;
+import meigo.dbettermodel.util.DBMDebug;
 
 public class BMPartCommand extends AbstractCommand {
 

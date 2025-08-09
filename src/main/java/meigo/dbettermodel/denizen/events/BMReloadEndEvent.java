@@ -1,4 +1,4 @@
-package net.openproject.dbettermodel.events;
+package meigo.dbettermodel.denizen.events;
 
 import com.denizenscript.denizen.events.BukkitScriptEvent;
 import com.denizenscript.denizencore.objects.ObjectTag;

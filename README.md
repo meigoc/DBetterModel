@@ -3,7 +3,7 @@
 <img width="145" height="157" alt="dbettermodel" src="https://github.com/user-attachments/assets/ed2022f5-3a9d-44d2-90ec-e855702fc400" />
 
 
-**DBetterModel 3.4.0: Adds interop between BetterModel and Denizen!**
+**DBetterModel 4.0.0: Adds interop between BetterModel and Denizen!**
 
 [![](https://img.shields.io/badge/SpigotMC-ED8106?style=for-the-badge&logo=SpigotMC&logoColor=white)](https://www.spigotmc.org/resources/dbettermodel.127341/)
 [![](https://img.shields.io/badge/Modrinth-00AF5C?style=for-the-badge&logo=Modrinth&logoColor=white)](https://modrinth.com/plugin/dbettermodel)
@@ -28,10 +28,11 @@ https://github.com/user-attachments/assets/f6b71e51-7977-44ac-b19f-adf491fd4687
 
 
 # Supported:
-Supports BetterModel v1.10.2, Minecraft 1.21.4, Denizen 1.3.1 (7144)
+Supports BetterModel v1.11.0, Minecraft 1.21.4, Denizen 1.3.1 (7144)
 | BetterModel Version | Latest Supported DBetterModel Version |
 |----------------------|-------------------------------|
-| 1.10.3 | 3.5.0 (In development) |
+| 1.11.0 | [4.0.0](https://github.com/meigoc/DBetterModel/releases/tag/v4.0.0) |
+| 1.10.3 | 3.5.0 (abandoned, will not be released) |
 | 1.10.2 | [3.4.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.4.0)  |
 | 1.10.0-1.10.1 | [3.3.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.3.0) |
 | 1.9.0-1.9.3 | [2.1.0](https://github.com/meigoc/DBetterModel/releases/tag/v2.1.0) |
@@ -39,7 +40,7 @@ Supports BetterModel v1.10.2, Minecraft 1.21.4, Denizen 1.3.1 (7144)
 | 1.5.5 | [1.1.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.1.0) |
 | 1.5.1 | [1.0.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.0.0) |
 
-# Docs (3.5.0 in dev)
+# Docs (4.0.0)
 
 -----
 
@@ -65,7 +66,10 @@ Plays or stops a layered animation state on a specific model on an entity, optio
     - `once` (plays one time),
     - `loop` (repeats indefinitely),
     - `hold` (plays once and freezes on the final frame).
-  - `remove`: A flag to stop the specified animation.
+  - `speed:<#.#>`: Playback speed multiplier.
+  - `lerp_duration:<duration>`: Transition duration between animation states.
+  - `for_players:<list_of_players>`: Only shows the animation to the specified players.
+  - `remove`: Stops the specified animation.
 - **Examples**:
   - To play a looping 'walk' animation on specific leg bones:  
     `bmstate entity:<context.entity> model:robot state:walk bones:left_leg|right_leg loop:loop`
@@ -122,6 +126,16 @@ Applies a player's skin part (e.g., head, cape, body) to a specific bone of a mo
   * Apply Player's head to the statue's head bone:
     `bmpart entity:<[statue_entity]> model:statue_model bone:head part:head from:<player>`
 
+### BMMount
+Mounts or dismounts an entity from a model's bone.
+
+- **Syntax**: `bmmount [<entity_to_mount>] on:<bmbone> (dismount) (dismount_all)`
+- **Arguments**:
+    - `<entity_to_mount>`: Entity to mount (optional for `dismount_all`).
+    - `on:<bmbone>`: Target bone (must be configured as a seat in the model file).
+    - `dismount`: Dismounts the specified entity from the bone.
+    - `dismount_all`: Dismounts all entities from the bone.
+
 ## Events
 
 ### bm starts reload
@@ -159,8 +173,6 @@ Represents a specific model instance attached to an entity.
   - `<BMModelTag.get_animation_duration[<name>]>`: Returns the total duration of the specified animation.
   - `<BMModelTag.animations>`: Returns a ListTag of all available animation names for this model.
 * **Mechanisms**:
-  * `interpolation_duration:<DurationTag>`
-    Sets the movement interpolation duration for all bones in the model.
   * `force_update`
     Forces an immediate visual update of the model for all viewers.
 
@@ -190,3 +202,11 @@ Represents a single bone within a specific model instance on an entity.
     Applies an additional rotation to the bone.
   * `view_range:<ElementTag(Decimal)>`
     Sets the render distance for the bone in blocks.
+  * `interpolation_duration:<DurationTag>`
+    Sets the movement interpolation duration for the bone.
+  * `glow:<ElementTag(Boolean)>`
+    Enables or disables glowing effect for the bone.
+  * `glow_color:<ElementTag(Integer)>`
+    Sets the RGB glow color.
+  * `brightness:<ElementTag(Integer)>`
+    Sets the brightness level for the bone.

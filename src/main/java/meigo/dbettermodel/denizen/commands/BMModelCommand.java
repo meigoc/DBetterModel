@@ -1,4 +1,4 @@
-package net.openproject.dbettermodel.commands;
+package meigo.dbettermodel.denizen.commands;
 
 import com.denizenscript.denizen.objects.EntityTag;
 import com.denizenscript.denizencore.objects.core.ElementTag;
@@ -7,7 +7,7 @@ import com.denizenscript.denizencore.scripts.commands.AbstractCommand;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgName;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgPrefixed;
 import kr.toxicity.model.api.BetterModel;
-import net.openproject.dbettermodel.util.DBMDebug;
+import meigo.dbettermodel.util.DBMDebug;
 import org.bukkit.entity.Entity;
 
 import java.util.Optional;

@@ -51,7 +51,7 @@ dependencies {
 
 fun buildNumber(): String = project.findProperty("BUILD_NUMBER") as? String ?: "UNKNOWN"
 
-group = "net.openproject"
+group = "meigo"
 version = buildNumber() + "-DEV"
 description = "DBetterModel"
 

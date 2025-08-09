@@ -2,7 +2,7 @@ name: DBetterModel
 author: meigoc
 authors: ['gleb_petrovich (meigoc)', 'isnsest']
 version: ${version}
-main: net.openproject.dbettermodel.DBetterModel
+main: meigo.dbettermodel.DBetterModel
 depend: [Denizen, BetterModel]
 website: https://github.com/meigoc/DBetterModel
 

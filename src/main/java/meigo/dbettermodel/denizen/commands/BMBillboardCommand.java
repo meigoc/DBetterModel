@@ -1,4 +1,4 @@
-package net.openproject.dbettermodel.commands;
+package meigo.dbettermodel.denizen.commands;
 
 import com.denizenscript.denizen.objects.EntityTag;
 import com.denizenscript.denizencore.objects.core.ElementTag;
@@ -8,7 +8,7 @@ import com.denizenscript.denizencore.scripts.commands.generator.ArgName;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgPrefixed;
 import kr.toxicity.model.api.BetterModel;
 import kr.toxicity.model.api.util.function.BonePredicate;
-import net.openproject.dbettermodel.util.DBMDebug;
+import meigo.dbettermodel.util.DBMDebug;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 

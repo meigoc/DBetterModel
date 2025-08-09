@@ -1,8 +1,8 @@
-package net.openproject.dbettermodel.properties;
+package meigo.dbettermodel.denizen.properties;
 
 import com.denizenscript.denizen.objects.EntityTag;
 import kr.toxicity.model.api.BetterModel;
-import net.openproject.dbettermodel.objects.BMEntityTag;
+import meigo.dbettermodel.denizen.objects.BMEntityTag;
 
 public class DBetterModelEntityTagExtensions {
 

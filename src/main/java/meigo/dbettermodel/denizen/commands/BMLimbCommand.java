@@ -1,4 +1,4 @@
-package net.openproject.dbettermodel.commands;
+package meigo.dbettermodel.denizen.commands;
 
 import com.denizenscript.denizen.objects.PlayerTag;
 import com.denizenscript.denizencore.objects.core.ElementTag;
@@ -13,7 +13,7 @@ import kr.toxicity.model.api.animation.AnimationIterator;
 import kr.toxicity.model.api.animation.AnimationModifier;
 import kr.toxicity.model.api.manager.PlayerManager;
 import kr.toxicity.model.api.util.function.BooleanConstantSupplier;
-import net.openproject.dbettermodel.util.DBMDebug;
+import meigo.dbettermodel.util.DBMDebug;
 import org.bukkit.entity.Player;
 
 import java.util.HashSet;
