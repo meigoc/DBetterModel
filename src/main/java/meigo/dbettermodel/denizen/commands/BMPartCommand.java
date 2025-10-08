@@ -51,7 +51,7 @@ public class BMPartCommand extends AbstractCommand {
     // Use to make the 'head' bone of a statue model display the head of the player 'Notch'.
     // - bmpart entity:<[statue_entity]> model:statue_model bone:head part:head from:Notch
     // -->
-    
+
     @Override
     public void addCustomTabCompletions(TabCompletionsBuilder tab) {
         if (tab.arg.startsWith("part:")) {
@@ -132,7 +132,7 @@ public class BMPartCommand extends AbstractCommand {
             };
 
             bone.setItemMapper(customMapper);
-            bone.updateItem(b -> true, tracker.getPipeline().getSource());
+            bone.updateItem(b -> true);
             tracker.forceUpdate(true);
             DBMDebug.approval(scriptEntry, "Successfully applied skin part '" + partName.asString() + "' from " + fromPlayer.getName() + " to bone '" + boneName.asString() + "'.");
         }, DBetterModel.skinApplyDelay);

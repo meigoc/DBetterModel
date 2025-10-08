@@ -13,6 +13,7 @@ import meigo.dbettermodel.denizen.objects.BMBoneTag;
 import meigo.dbettermodel.denizen.objects.BMEntityTag;
 import meigo.dbettermodel.denizen.objects.BMModelTag;
 import meigo.dbettermodel.denizen.properties.DBetterModelEntityTagExtensions;
+import meigo.dbettermodel.denizen.properties.DBetterModelPlayerTagExtensions;
 import meigo.dbettermodel.services.ModelService;
 import net.skinsrestorer.api.SkinsRestorer;
 import net.skinsrestorer.api.SkinsRestorerProvider;
@@ -27,8 +28,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class DBetterModel extends JavaPlugin {
 
     public static DBetterModel instance;
-    public static final String BETTERMODEL_VERSION = "1.11.0";
-    public static final String DBETTERMODEL_VERSION = "4.0.0";
+    public static final String BETTERMODEL_VERSION = "1.13.0";
+    public static final String DBETTERMODEL_VERSION = "4.1.0";
 
     public static long skinApplyDelay;
     public static boolean enablePluginLogging = true;
@@ -100,6 +101,7 @@ public class DBetterModel extends JavaPlugin {
 
     private void registerExtensions() {
         tryRegister("DBetterModelEntityTagExtensions", DBetterModelEntityTagExtensions::register);
+        tryRegister("DBetterModelPlayerTagExtensions", DBetterModelPlayerTagExtensions::register);
     }
 
     private void tryRegister(String featureName, Runnable registrationLogic) {

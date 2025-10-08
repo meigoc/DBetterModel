@@ -7,16 +7,20 @@ import com.denizenscript.denizencore.objects.Fetchable;
 import com.denizenscript.denizencore.objects.Mechanism;
 import com.denizenscript.denizencore.objects.ObjectTag;
 import com.denizenscript.denizencore.objects.core.ElementTag;
+import com.denizenscript.denizencore.objects.core.MapTag;
 import com.denizenscript.denizencore.tags.Attribute;
 import com.denizenscript.denizencore.tags.ObjectTagProcessor;
 import com.denizenscript.denizencore.tags.TagContext;
 import com.denizenscript.denizencore.utilities.CoreUtilities;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
+import com.denizenscript.denizencore.utilities.text.StringHolder;
 import kr.toxicity.model.api.BetterModel;
 import meigo.dbettermodel.services.ModelService;
 import org.bukkit.Location;
 import org.joml.Vector3f;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -93,6 +97,28 @@ public class BMBoneTag implements ObjectTag, Adjustable {
                         .map(BMModelTag::new)
                         .orElse(null)
         );
+
+        tagProcessor.registerTag(MapTag.class, "global_position", (attr, obj) -> {
+            Location globalLoc = ModelService.getInstance().getBoneWorldLocation(obj.entityUUID, obj.modelName, obj.boneName);
+
+            if (globalLoc == null) {
+                return null;
+            }
+
+            LocationTag globalPositionTag = new LocationTag(globalLoc);
+
+            // need to recode this part
+            LocationTag localPositionTag = new LocationTag(globalLoc.getWorld(), 0, 0, 0);
+
+            Map<StringHolder, ObjectTag> positionMap = new LinkedHashMap<>();
+
+            positionMap.put(new StringHolder("global"), globalPositionTag);
+            positionMap.put(new StringHolder("local"), localPositionTag);
+
+            return new MapTag(positionMap);
+        });
+
+
     }
 
     @Override

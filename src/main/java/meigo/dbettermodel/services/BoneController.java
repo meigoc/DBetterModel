@@ -2,14 +2,19 @@ package meigo.dbettermodel.services;
 
 import kr.toxicity.model.api.bone.RenderedBone;
 import kr.toxicity.model.api.nms.HitBox;
+import kr.toxicity.model.api.nms.ModelDisplay;
+import kr.toxicity.model.api.nms.PacketBundler;
 import kr.toxicity.model.api.tracker.EntityTracker;
 import kr.toxicity.model.api.util.TransformedItemStack;
 import kr.toxicity.model.api.util.function.BonePredicate;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+
+import java.util.List;
 
 public class BoneController {
 
@@ -34,7 +39,7 @@ public class BoneController {
     // --- Getters for Tags ---
     public Location getWorldLocation() {
         Vector3f worldPos = bone.worldPosition();
-        return tracker.sourceEntity().getLocation().add(worldPos.x(), worldPos.y(), worldPos.z());
+        return new Location(tracker.sourceEntity().getWorld(), worldPos.x(), worldPos.y(), worldPos.z());
     }
 
     public Vector3f getWorldRotationEuler() {
@@ -42,7 +47,8 @@ public class BoneController {
     }
 
     public boolean isVisible() {
-        return !bone.getDisplay().invisible();
+        ModelDisplay display = bone.getDisplay();
+        return display != null && !display.invisible();
     }
 
     // --- Handlers for Mechanisms ---
@@ -62,6 +68,37 @@ public class BoneController {
             forceUpdate();
         }
     }
+
+    public void setVisible(boolean visible, List<Player> players) {
+        if (players == null || players.isEmpty()) {
+            setVisible(visible);
+            return;
+        }
+        ModelDisplay display = bone.getDisplay();
+        if (display == null) {
+            return;
+        }
+        PacketBundler bundler = tracker.getPipeline().createParallelBundler();
+        if (visible) {
+            display.spawn(true, bundler);
+        } else {
+            display.remove(bundler);
+        }
+        for (Player player : players) {
+            bundler.send(player);
+        }
+    }
+
+    public void setViewRange(float range) {
+        ModelDisplay display = bone.getDisplay();
+        if (display != null) {
+            display.viewRange(range);
+            PacketBundler bundler = tracker.getPipeline().createParallelBundler();
+            display.sendDirtyEntityData(bundler);
+            tracker.getPipeline().viewedPlayer().forEach(bundler::send);
+        }
+    }
+
 
     public void setItem(ItemStack itemStack) {
         this.currentTransformedItemStack = new TransformedItemStack(
@@ -94,7 +131,7 @@ public class BoneController {
     }
 
     public void setInterpolationDuration(int ticks) {
-        bone.moveDuration(ticks);
+        bone.moveDuration(BonePredicate.TRUE, ticks);
         forceUpdate();
     }
 

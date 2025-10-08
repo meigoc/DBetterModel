@@ -11,7 +11,6 @@ import com.denizenscript.denizencore.scripts.commands.generator.ArgPrefixed;
 import kr.toxicity.model.api.BetterModel;
 import kr.toxicity.model.api.animation.AnimationIterator;
 import kr.toxicity.model.api.animation.AnimationModifier;
-import kr.toxicity.model.api.manager.PlayerManager;
 import kr.toxicity.model.api.util.function.BooleanConstantSupplier;
 import meigo.dbettermodel.util.DBMDebug;
 import org.bukkit.entity.Player;
@@ -85,10 +84,9 @@ public class BMLimbCommand extends AbstractCommand {
             return;
         }
 
-        PlayerManager playerManager = BetterModel.plugin().playerManager();
         String model = modelName.asString();
         String animation = animationName.asString();
-        if (playerManager.limb(model) == null) {
+        if (BetterModel.limbOrNull(model) == null) {
             DBMDebug.error(scriptEntry, "Limb animator model '" + model + "' not found. Make sure it is configured under 'player-animations'.");
             return;
         }
@@ -99,15 +97,15 @@ public class BMLimbCommand extends AbstractCommand {
             default -> AnimationIterator.Type.PLAY_ONCE;
         };
 
-        AnimationModifier modifier = new AnimationModifier(
-                BooleanConstantSupplier.TRUE,
-                0,
-                0,
-                type,
-                1.0f
-        );
+        AnimationModifier modifier = AnimationModifier.builder()
+                .predicate(BooleanConstantSupplier.TRUE)
+                .start(0)
+                .end(0)
+                .type(type)
+                .speed(1.0f)
+                .build();
 
-        boolean success = playerManager.animate(player, model, animation, modifier);
+        boolean success = BetterModel.plugin().modelManager().animate(player, model, animation, modifier);
 
         if (success) {
             DBMDebug.approval(scriptEntry, "Started player animation '" + animation + "' from model '" + model + "' on " + player.getName() + " with mode '" + type.name().toLowerCase() + "'.");

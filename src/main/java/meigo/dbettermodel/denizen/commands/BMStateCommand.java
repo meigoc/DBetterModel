@@ -80,7 +80,7 @@ public class BMStateCommand extends AbstractCommand {
             Predicate<RenderedBone> boneFilter = (bone) -> true;
             if (bones!= null) {
                 final Set<String> boneNames = new HashSet<>(bones);
-                boneFilter = (bone) -> boneNames.contains(bone.getName().name());
+                boneFilter = (bone) -> boneNames.contains(bone.name().name());
             }
 
             if (remove) {

@@ -71,10 +71,24 @@ public class BMModelTag implements ObjectTag, Adjustable {
     public static final ObjectTagProcessor<BMModelTag> tagProcessor = new ObjectTagProcessor<>();
 
     public static void registerTags() {
+        // <--[tag]
+        // @attribute <BMModelTag.bm_entity>
+        // @returns BMEntityTag
+        // @plugin DBetterModel
+        // @description
+        // Returns the parent BMEntityTag of this model.
+        // -->
         tagProcessor.registerTag(BMEntityTag.class, "bm_entity", (attr, obj) ->
                 new BMEntityTag(obj.getTracker().registry())
         );
 
+        // <--[tag]
+        // @attribute <BMModelTag.name>
+        // @returns ElementTag
+        // @plugin DBetterModel
+        // @description
+        // Returns the name of the model.
+        // -->
         tagProcessor.registerTag(ElementTag.class, "name", (attr, obj) ->
                 new ElementTag(obj.getTracker().name())
         );
@@ -84,7 +98,7 @@ public class BMModelTag implements ObjectTag, Adjustable {
             UUID uuid = obj.getTracker().registry().uuid();
             String modelName = obj.getTracker().name();
             for (RenderedBone bone : obj.getTracker().bones()) {
-                map.putObject(bone.getName().name(), new BMBoneTag(uuid, modelName, bone.getName().name()));
+                map.putObject(bone.name().name(), new BMBoneTag(uuid, modelName, bone.name().name()));
             }
             return map;
         });
@@ -93,7 +107,7 @@ public class BMModelTag implements ObjectTag, Adjustable {
             if (!attr.hasContext(1)) return null;
             String boneName = attr.getContext(1);
             return Optional.ofNullable(obj.getTracker().bone(boneName))
-                    .map(bone -> new BMBoneTag(obj.getTracker().registry().uuid(), obj.getTracker().name(), bone.getName().name()))
+                    .map(bone -> new BMBoneTag(obj.getTracker().registry().uuid(), obj.getTracker().name(), bone.name().name()))
                     .orElse(null);
         });
 
