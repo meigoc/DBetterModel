@@ -3,7 +3,7 @@
 <img width="145" height="157" alt="dbettermodel" src="https://github.com/user-attachments/assets/ed2022f5-3a9d-44d2-90ec-e855702fc400" />
 
 
-**DBetterModel 4.0.0: Adds interop between BetterModel and Denizen!**
+**DBetterModel 4.1.0: Adds interop between BetterModel and Denizen!**
 
 [![](https://img.shields.io/badge/SpigotMC-ED8106?style=for-the-badge&logo=SpigotMC&logoColor=white)](https://www.spigotmc.org/resources/dbettermodel.127341/)
 [![](https://img.shields.io/badge/Modrinth-00AF5C?style=for-the-badge&logo=Modrinth&logoColor=white)](https://modrinth.com/plugin/dbettermodel)
@@ -28,9 +28,10 @@ https://github.com/user-attachments/assets/f6b71e51-7977-44ac-b19f-adf491fd4687
 
 
 # Supported:
-Supports BetterModel v1.11.0, Minecraft 1.21.4, Denizen 1.3.1 (7144)
+Supports BetterModel v1.13.0, Minecraft 1.21.4, Denizen 1.3.1 (7144)
 | BetterModel Version | Latest Supported DBetterModel Version |
 |----------------------|-------------------------------|
+| 1.13.0-1.13.1 | [4.1.0](https://github.com/meigoc/DBetterModel/releases/tag/v4.1.0) |
 | 1.11.0 | [4.0.0](https://github.com/meigoc/DBetterModel/releases/tag/v4.0.0) |
 | 1.10.3 | 3.5.0 (abandoned, will not be released) |
 | 1.10.2 | [3.4.0](https://github.com/meigoc/DBetterModel/releases/tag/v3.4.0)  |
@@ -40,7 +41,8 @@ Supports BetterModel v1.11.0, Minecraft 1.21.4, Denizen 1.3.1 (7144)
 | 1.5.5 | [1.1.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.1.0) |
 | 1.5.1 | [1.0.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.0.0) |
 
-# Docs (4.0.0)
+# Docs (4.1.0)
+[New Documentation](https://docs.meigoc.xyz/dbettermodel)
 
 -----
 
