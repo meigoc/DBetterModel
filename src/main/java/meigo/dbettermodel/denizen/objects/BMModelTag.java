@@ -128,7 +128,7 @@ public class BMModelTag implements ObjectTag, Adjustable {
                 attr.echoError("Could not retrieve model renderer for " + obj.identify());
                 return null;
             }
-            Set<String> animationNames = renderer.animations();
+            Set<String> animationNames = renderer.animations().keySet();
             return new ListTag(animationNames);
         });
     }

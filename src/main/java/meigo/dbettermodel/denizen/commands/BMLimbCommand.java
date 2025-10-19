@@ -66,7 +66,7 @@ public class BMLimbCommand extends AbstractCommand {
 
         if (tab.arg.toLowerCase().startsWith("animation:")) {
             Set<String> allAnimations = new HashSet<>();
-            BetterModel.limbs().forEach(model -> allAnimations.addAll(model.animations()));
+            BetterModel.limbs().forEach(model -> allAnimations.addAll(model.animations().keySet()));
             tab.add(allAnimations);
         }
     }
