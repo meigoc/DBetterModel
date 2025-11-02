@@ -39,7 +39,7 @@ public class BoneController {
     // --- Getters for Tags ---
     public Location getWorldLocation() {
         Vector3f worldPos = bone.worldPosition();
-        return new Location(tracker.sourceEntity().getWorld(), worldPos.x(), worldPos.y(), worldPos.z());
+        return new Location(tracker.sourceEntity().location().getWorld(), worldPos.x(), worldPos.y(), worldPos.z());
     }
 
     public Vector3f getWorldRotationEuler() {

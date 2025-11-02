@@ -11,6 +11,7 @@ import com.denizenscript.denizencore.tags.TagContext;
 import com.denizenscript.denizencore.utilities.CoreUtilities;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
 import kr.toxicity.model.api.BetterModel;
+import kr.toxicity.model.api.entity.BaseBukkitEntity;
 import kr.toxicity.model.api.tracker.EntityTracker;
 import kr.toxicity.model.api.tracker.EntityTrackerRegistry;
 
@@ -76,7 +77,7 @@ public class BMEntityTag implements ObjectTag, Adjustable {
 
     @Override
     public String identify() {
-        return PREFIX + "@" + registry.entity().getUniqueId();
+        return PREFIX + "@" + registry.entity().uuid();
     }
 
     @Override public String identifySimple() { return identify(); }
@@ -94,7 +95,7 @@ public class BMEntityTag implements ObjectTag, Adjustable {
         // Returns the base Bukkit entity.
         // -->
         tagProcessor.registerTag(EntityTag.class, "base_entity", (attr, obj) ->
-                new EntityTag(obj.getRegistry().entity())
+                new EntityTag(((BaseBukkitEntity) obj.getRegistry().entity()).entity())
         );
 
         // <--[tag]

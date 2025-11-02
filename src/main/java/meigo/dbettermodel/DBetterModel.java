@@ -28,8 +28,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class DBetterModel extends JavaPlugin {
 
     public static DBetterModel instance;
-    public static final String BETTERMODEL_VERSION = "1.13.3";
-    public static final String DBETTERMODEL_VERSION = "4.2.0";
+    public static final String BETTERMODEL_VERSION = "1.14.0";
+    public static final String DBETTERMODEL_VERSION = "4.3.0";
 
     public static long skinApplyDelay;
     public static boolean enablePluginLogging = true;

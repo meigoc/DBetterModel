@@ -13,6 +13,7 @@ import kr.toxicity.model.api.bone.BoneItemMapper;
 import kr.toxicity.model.api.bone.RenderedBone;
 import kr.toxicity.model.api.data.renderer.RenderSource;
 import kr.toxicity.model.api.manager.SkinManager;
+import kr.toxicity.model.api.nms.Profiled;
 import kr.toxicity.model.api.player.PlayerLimb;
 import kr.toxicity.model.api.tracker.EntityTracker;
 import kr.toxicity.model.api.util.TransformedItemStack;
@@ -122,7 +123,7 @@ public class BMPartCommand extends AbstractCommand {
                 @Override
                 public TransformedItemStack apply(@NotNull RenderSource<?> renderSource, @NotNull TransformedItemStack originalItemStack) {
                     GameProfile currentProfile = BetterModel.plugin().nms().profile(currentPlayer);
-                    RenderSource.Profiled dummySource = new RenderSource.ProfiledDummy(
+                    Profiled dummySource = new RenderSource.ProfiledDummy(
                             currentPlayer.getLocation(),
                             currentProfile,
                             skinManager.isSlim(currentProfile)
