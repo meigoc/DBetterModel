@@ -44,7 +44,7 @@ Supports BetterModel v1.14.0, Minecraft 1.21.8, Denizen 1.3.1 (7222)
 | 1.5.1 | [1.0.0](https://github.com/Ignaacioo/DBetterModel/releases/tag/v1.0.0) |
 
 # Docs (4.2.0)
-[New Documentation](https://docs.meigoc.xyz/dbettermodel)
+[New Documentation](https://docs.meigo.pw/docs/dbettermodel)
 
 -----
 
