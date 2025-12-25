@@ -1,3 +1,8 @@
+/*
+ * Copyright 2025 Meigo™ Corporation
+ * SPDX-License-Identifier: MIT
+ */
+
 package meigo.dbettermodel.denizen.commands;
 
 import com.denizenscript.denizen.objects.EntityTag;
@@ -7,25 +12,22 @@ import com.denizenscript.denizencore.scripts.ScriptEntry;
 import com.denizenscript.denizencore.scripts.commands.AbstractCommand;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgName;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgPrefixed;
-import com.mojang.authlib.GameProfile;
 import kr.toxicity.model.api.BetterModel;
-import kr.toxicity.model.api.bone.BoneItemMapper;
+import kr.toxicity.model.api.bone.BoneRenderContext;
 import kr.toxicity.model.api.bone.RenderedBone;
 import kr.toxicity.model.api.data.renderer.RenderSource;
 import kr.toxicity.model.api.manager.SkinManager;
-import kr.toxicity.model.api.nms.Profiled;
 import kr.toxicity.model.api.player.PlayerLimb;
+import kr.toxicity.model.api.profile.ModelProfile;
 import kr.toxicity.model.api.tracker.EntityTracker;
-import kr.toxicity.model.api.util.TransformedItemStack;
 import meigo.dbettermodel.DBetterModel;
+import meigo.dbettermodel.util.DBMDebug;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
+
 import java.util.Arrays;
 import java.util.Optional;
-import meigo.dbettermodel.util.DBMDebug;
 
 public class BMPartCommand extends AbstractCommand {
 
@@ -56,7 +58,6 @@ public class BMPartCommand extends AbstractCommand {
     @Override
     public void addCustomTabCompletions(TabCompletionsBuilder tab) {
         if (tab.arg.startsWith("part:")) {
-
             tab.add(Arrays.stream(PlayerLimb.values())
                     .map(limb -> limb.name().toLowerCase())
                     .toList());
@@ -76,66 +77,53 @@ public class BMPartCommand extends AbstractCommand {
             DBMDebug.error(scriptEntry, "Target entity or source player not found.");
             return;
         }
-
-        GameProfile sourceProfile = BetterModel.plugin().nms().profile(sourcePlayer);
+        ModelProfile sourceProfile = BetterModel.plugin().nms().profile(sourcePlayer);
         SkinManager skinManager = BetterModel.plugin().skinManager();
-        skinManager.removeCache(sourceProfile);
-        skinManager.getOrRequest(sourceProfile);
+        skinManager.complete(sourceProfile.asUncompleted()).thenAccept(skinData -> {
 
-        Bukkit.getScheduler().runTaskLater(DBetterModel.getInstance(), () -> {
-            Entity currentEntity = entityTag.getBukkitEntity();
-            if (currentEntity == null) return;
+            Bukkit.getScheduler().runTask(DBetterModel.getInstance(), () -> {
 
-            Player currentPlayer = fromPlayer.getPlayerEntity();
-            if (currentPlayer == null) return;
+                Entity currentEntity = entityTag.getBukkitEntity();
+                Player currentPlayer = fromPlayer.getPlayerEntity();
+                if (currentEntity == null || currentPlayer == null) return;
 
-            Optional<EntityTracker> trackerOpt = BetterModel.registry(currentEntity)
-                    .flatMap(registry -> Optional.ofNullable(registry.tracker(modelName.asString())));
+                Optional<EntityTracker> trackerOpt = BetterModel.registry(currentEntity)
+                        .flatMap(registry -> Optional.ofNullable(registry.tracker(modelName.asString())));
 
-            if (trackerOpt.isEmpty()) {
-                DBMDebug.error(scriptEntry, "Model '" + modelName.asString() + "' not found on the entity after delay.");
-                return;
-            }
-            EntityTracker tracker = trackerOpt.get();
+                if (trackerOpt.isEmpty()) {
+                    DBMDebug.error(scriptEntry, "Model '" + modelName.asString() + "' not found on the entity.");
+                    return;
+                }
+                EntityTracker tracker = trackerOpt.get();
 
-            RenderedBone bone = tracker.bone(boneName.asString());
-            if (bone == null || bone.getDisplay() == null) {
-                DBMDebug.error(scriptEntry, "Bone '" + boneName.asString() + "' not found or is a dummy bone.");
-                return;
-            }
-
-            PlayerLimb targetLimb;
-            try {
-                targetLimb = PlayerLimb.valueOf(partName.asString().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                DBMDebug.error(scriptEntry, "Invalid part name: '" + partName.asString() + "'.");
-                return;
-            }
-
-            BoneItemMapper customMapper = new BoneItemMapper() {
-                @NotNull
-                @Override
-                public ItemDisplay.ItemDisplayTransform transform() {
-                    return targetLimb.getItemMapper().transform();
+                RenderedBone bone = tracker.bone(boneName.asString());
+                if (bone == null || bone.getDisplay() == null) {
+                    DBMDebug.error(scriptEntry, "Bone '" + boneName.asString() + "' not found or is a dummy bone.");
+                    return;
                 }
 
-                @NotNull
-                @Override
-                public TransformedItemStack apply(@NotNull RenderSource<?> renderSource, @NotNull TransformedItemStack originalItemStack) {
-                    GameProfile currentProfile = BetterModel.plugin().nms().profile(currentPlayer);
-                    Profiled dummySource = new RenderSource.ProfiledDummy(
-                            currentPlayer.getLocation(),
-                            currentProfile,
-                            skinManager.isSlim(currentProfile)
-                    );
-                    return targetLimb.createItem(dummySource);
+                PlayerLimb targetLimb;
+                try {
+                    targetLimb = PlayerLimb.valueOf(partName.asString().toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    DBMDebug.error(scriptEntry, "Invalid part name: '" + partName.asString() + "'.");
+                    return;
                 }
-            };
 
-            bone.setItemMapper(customMapper);
-            bone.updateItem(b -> true);
-            tracker.forceUpdate(true);
-            DBMDebug.approval(scriptEntry, "Successfully applied skin part '" + partName.asString() + "' from " + fromPlayer.getName() + " to bone '" + boneName.asString() + "'.");
-        }, DBetterModel.skinApplyDelay);
+                var adaptedSource = BetterModel.plugin().nms().adapt(currentPlayer);
+                BoneRenderContext playerContext = new BoneRenderContext(RenderSource.of(adaptedSource), skinData);
+
+                bone.setItemMapper(targetLimb.getItemMapper());
+                bone.updateItem(playerContext);
+
+                tracker.forceUpdate(true);
+
+                DBMDebug.approval(scriptEntry, "Successfully applied skin part '" + partName.asString() + "' from " + fromPlayer.getName() + " to bone '" + boneName.asString() + "'.");
+            });
+
+        }).exceptionally(e -> {
+            DBMDebug.error(scriptEntry, "Failed to load skin for " + fromPlayer.getName() + ": " + e.getMessage());
+            return null;
+        });
     }
 }

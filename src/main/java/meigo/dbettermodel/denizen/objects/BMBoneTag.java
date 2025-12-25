@@ -1,3 +1,8 @@
+/*
+ * Copyright 2025 Meigo™ Corporation
+ * SPDX-License-Identifier: MIT
+ */
+
 package meigo.dbettermodel.denizen.objects;
 
 import com.denizenscript.denizen.objects.EntityTag;
@@ -7,20 +12,20 @@ import com.denizenscript.denizencore.objects.Fetchable;
 import com.denizenscript.denizencore.objects.Mechanism;
 import com.denizenscript.denizencore.objects.ObjectTag;
 import com.denizenscript.denizencore.objects.core.ElementTag;
-import com.denizenscript.denizencore.objects.core.MapTag;
 import com.denizenscript.denizencore.tags.Attribute;
 import com.denizenscript.denizencore.tags.ObjectTagProcessor;
 import com.denizenscript.denizencore.tags.TagContext;
 import com.denizenscript.denizencore.utilities.CoreUtilities;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
-import com.denizenscript.denizencore.utilities.text.StringHolder;
 import kr.toxicity.model.api.BetterModel;
+import kr.toxicity.model.api.bone.RenderedBone;
+import kr.toxicity.model.api.tracker.EntityTracker;
+import kr.toxicity.model.api.tracker.EntityTrackerRegistry;
 import meigo.dbettermodel.services.ModelService;
 import org.bukkit.Location;
+import org.bukkit.util.Vector;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -78,7 +83,7 @@ public class BMBoneTag implements ObjectTag, Adjustable {
         tagProcessor.registerTag(ElementTag.class, "name", (attr, obj) -> new ElementTag(obj.boneName));
 
         tagProcessor.registerTag(LocationTag.class, "world_location", (attr, obj) -> {
-            Location loc = ModelService.getInstance().getBoneWorldLocation(obj.entityUUID, obj.modelName, obj.boneName);
+            Location loc = obj.getAbsoluteLocation();
             return loc != null ? new LocationTag(loc) : null;
         });
 
@@ -98,24 +103,19 @@ public class BMBoneTag implements ObjectTag, Adjustable {
                         .orElse(null)
         );
 
-        tagProcessor.registerTag(MapTag.class, "global_position", (attr, obj) -> {
-            Location globalLoc = ModelService.getInstance().getBoneWorldLocation(obj.entityUUID, obj.modelName, obj.boneName);
+        tagProcessor.registerTag(LocationTag.class, "local_position", (attr, obj) -> {
+            Location offset = ModelService.getInstance().getBoneWorldLocation(obj.entityUUID, obj.modelName, obj.boneName);
+            return offset != null ? new LocationTag(offset) : null;
+        });
 
-            if (globalLoc == null) {
-                return null;
-            }
+        tagProcessor.registerTag(LocationTag.class, "global_position", (attr, obj) -> {
+            Location loc = obj.getAbsoluteLocation();
+            return loc != null ? new LocationTag(loc) : null;
+        });
 
-            LocationTag globalPositionTag = new LocationTag(globalLoc);
-
-            // need to recode this part
-            LocationTag localPositionTag = new LocationTag(globalLoc.getWorld(), 0, 0, 0);
-
-            Map<StringHolder, ObjectTag> positionMap = new LinkedHashMap<>();
-
-            positionMap.put(new StringHolder("global"), globalPositionTag);
-            positionMap.put(new StringHolder("local"), localPositionTag);
-
-            return new MapTag(positionMap);
+        tagProcessor.registerTag(LocationTag.class, "real_position", (attr, obj) -> {
+            Location loc = obj.getRealWorldLocation();
+            return loc != null ? new LocationTag(loc) : null;
         });
 
 
@@ -134,5 +134,48 @@ public class BMBoneTag implements ObjectTag, Adjustable {
     @Override
     public void applyProperty(Mechanism mechanism) {
         Debug.echoError("Cannot apply properties to a BMBoneTag!");
+    }
+
+    public Location getRealWorldLocation() {
+        org.bukkit.entity.Entity bukkitEntity = org.bukkit.Bukkit.getEntity(this.entityUUID);
+        if (bukkitEntity == null) return null;
+
+        EntityTrackerRegistry registry = BetterModel.registryOrNull(bukkitEntity);
+        if (registry == null) return null;
+
+        EntityTracker tracker = null;
+        for (EntityTracker t : registry.trackers()) {
+            if (t.name().equals(this.modelName)) {
+                tracker = t;
+                break;
+            }
+        }
+        if (tracker == null) return null;
+
+        RenderedBone bone = tracker.bone(this.boneName);
+        if (bone == null) return null;
+
+        Vector3f pos = bone.worldPosition();
+        Quaternionf rot = bone.hitBoxViewRotation();
+
+        Vector3f direction = new Vector3f(0, 0, 1);
+        direction.rotate(rot);
+        Location loc = bukkitEntity.getLocation().add(pos.x, pos.y, pos.z);
+
+        loc.setDirection(new Vector(direction.x, direction.y, direction.z));
+
+        return loc;
+    }
+
+    private Location getAbsoluteLocation() {
+        Location offset = ModelService.getInstance().getBoneWorldLocation(this.entityUUID, this.modelName, this.boneName);
+        if (offset == null) return null;
+        org.bukkit.entity.Entity bukkitEntity = org.bukkit.Bukkit.getEntity(this.entityUUID);
+        if (bukkitEntity == null) return null;
+
+        Location entityLoc = bukkitEntity.getLocation();
+        Vector vec = new Vector(offset.getX(), offset.getY(), offset.getZ());
+        vec.rotateAroundY(Math.toRadians(-entityLoc.getYaw()));
+        return entityLoc.add(vec);
     }
 }

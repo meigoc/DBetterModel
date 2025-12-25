@@ -1,3 +1,8 @@
+/*
+ * Copyright 2025 Meigo™ Corporation
+ * SPDX-License-Identifier: MIT
+ */
+
 package meigo.dbettermodel.services;
 
 import com.denizenscript.denizen.objects.PlayerTag;
@@ -49,7 +54,7 @@ public class ModelService implements Listener {
     public void onTrackerClose(CloseTrackerEvent event) {
         Tracker tracker = event.getTracker();
         if (tracker instanceof EntityTracker entityTracker) {
-            String prefix = entityTracker.registry().uuid().toString() + "," + entityTracker.name() + ",";
+            String prefix = entityTracker.registry().uuid() + "," + entityTracker.name() + ",";
             boneControllerCache.keySet().removeIf(key -> key.startsWith(prefix));
         }
     }
@@ -57,13 +62,11 @@ public class ModelService implements Listener {
     private Optional<BoneController> getBoneController(UUID entityUUID, String modelId, String boneId) {
         return BetterModel.registry(entityUUID)
                 .flatMap(registry -> Optional.ofNullable(registry.tracker(modelId)))
-                .flatMap(tracker -> {
-                    return Optional.ofNullable(tracker.bone(boneId))
-                            .map(bone -> {
-                                String key = entityUUID.toString() + "," + modelId + "," + boneId;
-                                return boneControllerCache.computeIfAbsent(key, k -> new BoneController(tracker, bone));
-                            });
-                });
+                .flatMap(tracker -> Optional.ofNullable(tracker.bone(boneId))
+                        .map(bone -> {
+                            String key = entityUUID + "," + modelId + "," + boneId;
+                            return boneControllerCache.computeIfAbsent(key, k -> new BoneController(tracker, bone));
+                        }));
     }
 
     // --- Tag Getters ---

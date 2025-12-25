@@ -8,6 +8,7 @@ import kr.toxicity.model.api.tracker.EntityTracker;
 import kr.toxicity.model.api.util.TransformedItemStack;
 import kr.toxicity.model.api.util.function.BonePredicate;
 import org.bukkit.Location;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -64,7 +65,7 @@ public class BoneController {
     }
 
     public void setVisible(boolean visible) {
-        if (bone.togglePart(BonePredicate.TRUE, visible)) {
+        if (bone.applyAtDisplay(BonePredicate.TRUE, display -> display.invisible(!visible))) {
             forceUpdate();
         }
     }
@@ -131,24 +132,24 @@ public class BoneController {
     }
 
     public void setInterpolationDuration(int ticks) {
-        bone.moveDuration(BonePredicate.TRUE, ticks);
+        bone.applyAtDisplay(BonePredicate.TRUE, display -> display.moveDuration(ticks));
         forceUpdate();
     }
 
     public void setGlow(boolean glow) {
-        if (bone.glow(BonePredicate.TRUE, glow)) {
+        if (bone.applyAtDisplay(BonePredicate.TRUE, display -> display.glow(glow))) {
             forceUpdate();
         }
     }
 
     public void setGlowColor(int color) {
-        if (bone.glowColor(BonePredicate.TRUE, color)) {
+        if (bone.applyAtDisplay(BonePredicate.TRUE, display -> display.glowColor(color))) {
             forceUpdate();
         }
     }
 
     public void setBrightness(int blockLight, int skyLight) {
-        if (bone.brightness(BonePredicate.TRUE, blockLight, skyLight)) {
+        if (bone.applyAtDisplay(BonePredicate.TRUE, display -> display.brightness(blockLight, skyLight))) {
             forceUpdate();
         }
     }
@@ -178,6 +179,18 @@ public class BoneController {
         HitBox hitbox = bone.getHitBox();
         if (hitbox != null) {
             hitbox.dismountAll();
+        }
+    }
+
+    public void setShadowRadius(float radius) {
+        if (bone.applyAtDisplay(BonePredicate.TRUE, display -> display.shadowRadius(radius))) {
+            forceUpdate();
+        }
+    }
+
+    public void setBillboard(Display.Billboard type) {
+        if (bone.applyAtDisplay(BonePredicate.TRUE, display -> display.billboard(type))) {
+            forceUpdate();
         }
     }
 }

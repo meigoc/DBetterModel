@@ -1,3 +1,8 @@
+/*
+ * Copyright 2025 Meigo™ Corporation
+ * SPDX-License-Identifier: MIT
+ */
+
 package meigo.dbettermodel.denizen.events;
 
 import com.denizenscript.denizen.events.BukkitScriptEvent;

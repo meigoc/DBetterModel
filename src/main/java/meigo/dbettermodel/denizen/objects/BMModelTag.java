@@ -1,3 +1,8 @@
+/*
+ * Copyright 2025 Meigo™ Corporation
+ * SPDX-License-Identifier: MIT
+ */
+
 package meigo.dbettermodel.denizen.objects;
 
 import com.denizenscript.denizen.objects.EntityTag;
@@ -18,6 +23,7 @@ import kr.toxicity.model.api.BetterModel;
 import kr.toxicity.model.api.bone.RenderedBone;
 import kr.toxicity.model.api.data.renderer.ModelRenderer;
 import kr.toxicity.model.api.tracker.EntityTracker;
+import meigo.dbettermodel.services.ModelService;
 
 import java.util.Optional;
 import java.util.Set;
@@ -71,6 +77,19 @@ public class BMModelTag implements ObjectTag, Adjustable {
     public static final ObjectTagProcessor<BMModelTag> tagProcessor = new ObjectTagProcessor<>();
 
     public static void registerTags() {
+
+        EntityTag.tagProcessor.registerTag(BMModelTag.class, "bm_model", (attr, obj) -> {
+            if (!attr.hasContext(1)) {
+                attr.echoError("The bm_model tag must specify a model name!");
+                return null;
+            }
+            String modelName = attr.getContext(1);
+            return BetterModel.registry(obj.getBukkitEntity())
+                    .map(registry -> registry.tracker(modelName))
+                    .map(BMModelTag::new)
+                    .orElse(null);
+        });
+
         // <--[tag]
         // @attribute <BMModelTag.bm_entity>
         // @returns BMEntityTag
@@ -146,6 +165,10 @@ public class BMModelTag implements ObjectTag, Adjustable {
             }
         }
         tagProcessor.processMechanism(this, mechanism);
+        for (RenderedBone bone : tracker.bones()) {
+            BMBoneTag boneTag = new BMBoneTag(tracker.registry().uuid(), tracker.name(), bone.name().name());
+            ModelService.getInstance().adjustBone(boneTag, mechanism);
+        }
     }
 
     @Override

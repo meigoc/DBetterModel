@@ -1,3 +1,8 @@
+/*
+ * Copyright 2025 Meigo™ Corporation
+ * SPDX-License-Identifier: MIT
+ */
+
 package meigo.dbettermodel.services;
 
 import com.denizenscript.denizen.objects.ItemTag;
@@ -6,6 +11,7 @@ import com.denizenscript.denizen.objects.PlayerTag;
 import com.denizenscript.denizencore.objects.Mechanism;
 import com.denizenscript.denizencore.objects.core.*;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -36,6 +42,8 @@ public class BoneMechanismHandler {
         handlers.put("glow_color", this::handleGlowColor);
         handlers.put("brightness", this::handleBrightness);
         handlers.put("view_range", this::handleViewRange);
+        handlers.put("shadow_radius", this::handleShadowRadius);
+        handlers.put("billboard", this::handleBillboard);
     }
 
     public void handle(BoneController controller, Mechanism mechanism) {
@@ -153,6 +161,18 @@ public class BoneMechanismHandler {
             }
         } else {
             Debug.echoError("Brightness mechanism requires a ListTag of two integers.");
+        }
+    }
+
+    private void handleShadowRadius(BoneController controller, Mechanism mechanism) {
+        if (mechanism.requireFloat()) {
+            controller.setShadowRadius(mechanism.getValue().asFloat());
+        }
+    }
+
+    private void handleBillboard(BoneController controller, Mechanism mechanism) {
+        if (mechanism.requireEnum(Display.Billboard.class)) {
+            controller.setBillboard(Display.Billboard.valueOf(mechanism.getValue().asString().toUpperCase()));
         }
     }
 }

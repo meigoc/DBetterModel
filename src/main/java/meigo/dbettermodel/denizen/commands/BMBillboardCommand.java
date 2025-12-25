@@ -1,3 +1,8 @@
+/*
+ * Copyright 2025 Meigo™ Corporation
+ * SPDX-License-Identifier: MIT
+ */
+
 package meigo.dbettermodel.denizen.commands;
 
 import com.denizenscript.denizen.objects.EntityTag;
@@ -69,7 +74,7 @@ public class BMBillboardCommand extends AbstractCommand {
                 return;
             }
 
-            if (bone.billboard(BonePredicate.TRUE, billboardType)) {
+            if (bone.applyAtDisplay(BonePredicate.TRUE, display -> display.billboard(billboardType))) {
                 tracker.forceUpdate(true);
                 DBMDebug.approval(scriptEntry, "Set billboard type of bone '" + boneName.asString() + "' to '" + type.asString() + "'.");
             } else {

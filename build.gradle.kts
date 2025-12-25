@@ -45,14 +45,12 @@ dependencies {
     implementation("io.papermc.paper:paper-api:${project.properties["craftbukkit.version"]}")
     implementation("com.denizenscript:denizen:${project.properties["denizen.version"]}")
     compileOnly("io.github.toxicity188:bettermodel:${project.properties["bettermodel.version"]}")
-    compileOnly("com.mojang:authlib:3.9.47")
-    compileOnly("net.skinsrestorer:skinsrestorer-api:15.7.7")
 }
 
 fun buildNumber(): String = project.findProperty("BUILD_NUMBER") as? String ?: "UNKNOWN"
 
 group = "meigo"
-version = buildNumber() + "-DEV"
+version = buildNumber()
 description = "DBetterModel"
 
 publishing {

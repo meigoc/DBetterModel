@@ -1,11 +1,9 @@
 name: DBetterModel
 author: meigoc
-authors: ['gleb_petrovich (meigoc)', 'isnsest']
+authors: ['Meigo™ Corporation (github.com/meigoc)']
 version: ${version}
 main: meigo.dbettermodel.DBetterModel
 depend: [Denizen, BetterModel]
 website: https://github.com/meigoc/DBetterModel
 
 api-version: '1.21'
-
-softdepend: []
