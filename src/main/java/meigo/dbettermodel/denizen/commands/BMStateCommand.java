@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Meigo™ Corporation
+ * Copyright 2026 Meigo™ Corporation
  * SPDX-License-Identifier: MIT
  */
 
@@ -15,29 +15,29 @@ import com.denizenscript.denizencore.scripts.commands.generator.ArgDefaultNull;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgDefaultText;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgName;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgPrefixed;
-import kr.toxicity.model.api.BetterModel;
-import kr.toxicity.model.api.animation.AnimationIterator;
-import kr.toxicity.model.api.animation.AnimationModifier;
-import kr.toxicity.model.api.bone.RenderedBone;
+import meigo.dbettermodel.DBetterModel;
+import meigo.dbettermodel.compat.api.BmAnimationOptions;
+import meigo.dbettermodel.compat.api.BmPlatform;
+import meigo.dbettermodel.compat.api.BmTracker;
 import meigo.dbettermodel.services.ModelService;
 import meigo.dbettermodel.util.DBMDebug;
 import org.bukkit.entity.Entity;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-import java.util.function.Predicate;
 
 public class BMStateCommand extends AbstractCommand {
 
     public BMStateCommand() {
         setName("bmstate");
-        setSyntax("bmstate entity:<entity> model:<model> state:<animation> (bones:<list>) (loop:<once|loop|hold>) (speed:<#.#>) (lerp_duration:<duration>) (for_players:<list_of_players>) (remove)");
+        setSyntax("bmstate entity:<entity> model:<model> state:<animation> (bones:<list>) (loop:<once|loop|hold>) (speed:<#.#>) (lerp_duration:<duration>) (lerp_frames:<#>) (for_players:<list_of_players>) (remove)");
         autoCompile();
     }
 
     // <--[command]
     // @Name BMState
-    // @Syntax bmstate entity:<entity> model:<model> state:<animation> (bones:<list>) (loop:<once|loop|hold>) (speed:<#.#>) (lerp_duration:<duration>) (for_players:<list_of_players>) (remove)
+    // @Syntax bmstate entity:<entity> model:<model> state:<animation> (bones:<list>) (loop:<once|loop|hold>) (speed:<#.#>) (lerp_duration:<duration>) (lerp_frames:<#>) (for_players:<list_of_players>) (remove)
     // @Required 3
     // @Short Plays or stops a layered animation state on a model, with per-player and per-bone control.
     // @Group DBetterModel
@@ -53,16 +53,29 @@ public class BMStateCommand extends AbstractCommand {
     //
     // The 'lerp_duration' argument (previously lerp_frames) now accepts a DurationTag for smoother transitions.
     //
+    // The 'lerp_frames' argument is a deprecated pre-4.0.0 alias, interpreted as a tick count.
+    // When both are given, 'lerp_duration' wins.
+    //
     // The 'remove' argument stops the specified animation on the specified bones/players.
     //
     // @Usage
     // # Play a looping 'walk' animation only on the leg bones for everyone.
-    // - bmstate entity:<context.entity> model:robot state:walk bones:left_leg|right_leg loop:loop
+    // - bmstate entity:<context.entity> model:demon_knight state:walk bones:left_leg|right_leg loop:loop
     //
     // @Usage
-    // # Make the robot wave, but only player_1 and player_2 can see it.
-    // - bmstate entity:<context.entity> model:robot state:wave for_players:<[player_1]>|<[player_2]>
+    // # Make the knight guard, but only player_1 and player_2 can see it.
+    // - bmstate entity:<context.entity> model:demon_knight state:guard for_players:<[player_1]>|<[player_2]>
     // -->
+
+    @Override
+    public void addCustomTabCompletions(TabCompletionsBuilder tab) {
+        BmPlatform platform = DBetterModel.platform();
+        if (platform != null) {
+            tab.addWithPrefix("model:", platform.modelNames());
+        }
+        tab.addWithPrefix("loop:", List.of("once", "loop", "hold"));
+        tab.add("remove");
+    }
 
     public static void autoExecute(ScriptEntry scriptEntry,
                                    @ArgName("entity") @ArgPrefixed EntityTag entityTag,
@@ -71,48 +84,61 @@ public class BMStateCommand extends AbstractCommand {
                                    @ArgName("bones") @ArgPrefixed @ArgDefaultNull ListTag bones,
                                    @ArgName("loop") @ArgDefaultText("once") @ArgPrefixed ElementTag loopMode,
                                    @ArgName("speed") @ArgDefaultText("1.0") @ArgPrefixed ElementTag speedTag,
-                                   @ArgName("lerp_duration") @ArgDefaultText("1t") @ArgPrefixed DurationTag lerpDuration,
+                                   @ArgName("lerp_duration") @ArgPrefixed @ArgDefaultNull DurationTag lerpDuration,
+                                   @ArgName("lerp_frames") @ArgPrefixed @ArgDefaultNull ElementTag lerpFrames,
                                    @ArgName("for_players") @ArgPrefixed @ArgDefaultNull ListTag forPlayers,
                                    @ArgName("remove") boolean remove) {
+        BmPlatform platform = DBetterModel.platform();
+        if (platform == null) {
+            DBMDebug.error(scriptEntry, "DBetterModel compat layer is not available.");
+            return;
+        }
         Entity entity = entityTag.getBukkitEntity();
-        BetterModel.registry(entity).ifPresentOrElse(registry -> {
-            var tracker = registry.tracker(modelName.asString());
-            if (tracker == null) {
-                DBMDebug.error(scriptEntry, "Model '" + modelName.asString() + "' not found on entity " + entity.getUniqueId() + ".");
-                return;
+        if (!platform.isModeled(entity)) {
+            DBMDebug.error(scriptEntry, "The entity does not have any BetterModel models attached.");
+            return;
+        }
+        BmTracker tracker = platform.tracker(entity, modelName.asString()).orElse(null);
+        if (tracker == null) {
+            DBMDebug.error(scriptEntry, "Model '" + modelName.asString() + "' not found on entity " + entity.getUniqueId() + ".");
+            return;
+        }
+        String animation = animName.asString();
+        Set<String> boneNames = bones != null ? new HashSet<>(bones) : null;
+
+        if (remove) {
+            if (tracker.stopAnimation(animation, boneNames)) {
+                DBMDebug.approval(scriptEntry, "Stopped animation '" + animation + "' on model '" + modelName.asString() + "'.");
+            } else {
+                DBMDebug.error(scriptEntry, "Animation '" + animation + "' was not running on the specified parts of model '" + modelName.asString() + "'.");
             }
-            String animation = animName.asString();
-            Predicate<RenderedBone> boneFilter = (bone) -> true;
-            if (bones!= null) {
-                final Set<String> boneNames = new HashSet<>(bones);
-                boneFilter = (bone) -> boneNames.contains(bone.name().name());
-            }
+            return;
+        }
 
-            if (remove) {
-                if (tracker.stopAnimation(boneFilter, animation)) {
-                    DBMDebug.approval(scriptEntry, "Stopped animation '" + animation + "' on model '" + modelName.asString() + "'.");
-                } else {
-                    DBMDebug.error(scriptEntry, "Animation '" + animation + "' was not running on the specified parts of model '" + modelName.asString() + "'.");
-                }
-                return;
-            }
+        BmAnimationOptions.LoopMode type = switch (loopMode.asString().toLowerCase().trim()) {
+            case "loop" -> BmAnimationOptions.LoopMode.LOOP;
+            case "hold" -> BmAnimationOptions.LoopMode.HOLD;
+            default -> BmAnimationOptions.LoopMode.ONCE;
+        };
 
-            AnimationIterator.Type type = switch (loopMode.asString().toLowerCase().trim()) {
-                case "loop" -> AnimationIterator.Type.LOOP;
-                case "hold" -> AnimationIterator.Type.HOLD_ON_LAST;
-                default -> AnimationIterator.Type.PLAY_ONCE;
-            };
+        // Legacy alias: lerp_frames (pre-4.0.0) counts as ticks; explicit lerp_duration wins.
+        int lerpTicks = 1;
+        if (lerpDuration != null) {
+            lerpTicks = lerpDuration.getTicksAsInt();
+        }
+        else if (lerpFrames != null && lerpFrames.isInt()) {
+            lerpTicks = lerpFrames.asInt();
+        }
 
-            AnimationModifier.Builder builder = AnimationModifier.builder()
-                    .start(lerpDuration.getTicksAsInt())
-                    .type(type)
-                    .speed(speedTag::asFloat)
-                    .override(false);
+        BmAnimationOptions.Builder options = BmAnimationOptions.builder()
+                .lerpTicks(lerpTicks)
+                .loopMode(type)
+                .speed(speedTag.asFloat())
+                .override(false)
+                .bones(boneNames);
 
-            ModelService.getInstance().playAnimationForPlayers(tracker, animation, builder.build(), forPlayers);
+        ModelService.getInstance().playAnimationForPlayers(tracker, animation, options, forPlayers);
 
-            DBMDebug.approval(scriptEntry, "Started animation '" + animation + "' on model '" + modelName.asString() + "'.");
-
-        }, () -> DBMDebug.error(scriptEntry, "The entity does not have any BetterModel models attached."));
+        DBMDebug.approval(scriptEntry, "Started animation '" + animation + "' on model '" + modelName.asString() + "'.");
     }
 }

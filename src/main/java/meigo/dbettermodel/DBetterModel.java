@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Meigo™ Corporation
+ * Copyright 2026 Meigo™ Corporation
  * SPDX-License-Identifier: MIT
  */
 
@@ -9,9 +9,10 @@ import com.denizenscript.denizencore.DenizenCore;
 import com.denizenscript.denizencore.events.ScriptEvent;
 import com.denizenscript.denizencore.objects.ObjectFetcher;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
+import meigo.dbettermodel.compat.api.BmPlatform;
+import meigo.dbettermodel.denizen.BMServerTags;
 import meigo.dbettermodel.denizen.commands.*;
-import meigo.dbettermodel.denizen.events.BMReloadEndEvent;
-import meigo.dbettermodel.denizen.events.BMReloadStartEvent;
+import meigo.dbettermodel.denizen.events.*;
 import meigo.dbettermodel.denizen.objects.BMBoneTag;
 import meigo.dbettermodel.denizen.objects.BMEntityTag;
 import meigo.dbettermodel.denizen.objects.BMModelTag;
@@ -19,48 +20,48 @@ import meigo.dbettermodel.denizen.properties.DBetterModelEntityTagExtensions;
 import meigo.dbettermodel.denizen.properties.DBetterModelPlayerTagExtensions;
 import meigo.dbettermodel.services.ModelService;
 import meigo.dbettermodel.util.Metrics;
+import meigo.dbettermodel.util.Versions;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * Main plugin class for DBetterModel.
- * Initializes all components, including services and Denizen integration.
+ * Selects the BetterModel compat layer, then wires services and the Denizen surface.
  */
 public class DBetterModel extends JavaPlugin {
 
     public static DBetterModel instance;
-    public static final String DBETTERMODEL_VERSION = "5.0.0";
     private static final int BSTATS_ID = 28477;
 
     public static boolean checkForUpdates;
     public static boolean enablePluginLogging = true;
 
-    private static final String ANSI_RESET = "\u001B[0m";
-    private static final String ANSI_GREEN = "\u001B[32m";
-    private static final String ANSI_RED = "\u001B[31m";
+    private BmPlatform platform;
 
     @Override
     public void onEnable() {
-        if (!isBetterModelCompatible()) {
+        instance = this;
+        platform = selectPlatform();
+        if (platform == null) {
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
 
-        Debug.log("DBetterModel " + DBETTERMODEL_VERSION + " loading...");
+        Debug.log("DBetterModel " + version() + " loading...");
         saveDefaultConfig();
-        instance = this;
         reloadConfig();
         checkForUpdates = getConfig().getBoolean("options.check-for-updates", true);
         enablePluginLogging = getConfig().getBoolean("options.enable-plugin-logging", true);
-        ModelService.getInstance().initialize(this);
+        ModelService.getInstance().initialize(this, platform);
 
         registerCommands();
         registerObjects();
@@ -78,6 +79,14 @@ public class DBetterModel extends JavaPlugin {
     @Override
     public void onDisable() {
         ModelService.getInstance().shutdown();
+        if (platform != null) {
+            try {
+                platform.shutdown();
+            } catch (Throwable t) {
+                getLogger().warning("Compat layer shutdown failed: " + t.getMessage());
+            }
+            platform = null;
+        }
         Debug.log("DBetterModel disabled.");
     }
 
@@ -85,86 +94,102 @@ public class DBetterModel extends JavaPlugin {
         return instance;
     }
 
-    private boolean isBetterModelCompatible() {
-        Plugin plugin = Bukkit.getPluginManager().getPlugin("BetterModel");
-        if (plugin == null) {
+    /** Plugin version, single-sourced from plugin.yml (expanded from gradle.properties). */
+    public static String version() {
+        return instance.getDescription().getVersion();
+    }
+
+    /** The active compat layer, or null when the plugin failed to bootstrap. */
+    public static BmPlatform platform() {
+        return instance == null ? null : instance.platform;
+    }
+
+    /**
+     * Reads the installed BetterModel version, delegates the layer decision to
+     * {@link LayerSelector}, then reflectively loads the selected layer
+     * ({@code meigo.dbettermodel.compat.vN.VNPlatform}, constructor {@code (Plugin ownPlugin)}).
+     * Never throws — returns null (and logs why) on any unsupported/failed case.
+     */
+    private BmPlatform selectPlatform() {
+        Plugin bm = Bukkit.getPluginManager().getPlugin("BetterModel");
+        if (bm == null) {
             getLogger().severe("BetterModel not found!");
-            return false;
+            return null;
+        }
+        String version = bm.getDescription().getVersion();
+        LayerSelector.Selection selection = LayerSelector.select(version);
+        if (selection.layerClass() == null) {
+            getLogger().severe("BetterModel " + version + ": " + selection.reason() + " — disabling.");
+            return null;
+        }
+        if (selection.bestEffort()) {
+            // The v3 layer only uses public API, so try it and let its constructor
+            // probe the signatures it needs before committing.
+            getLogger().warning("BetterModel " + version + " is newer than this build knows. "
+                    + "Trying the v3 compat layer in best-effort mode — if anything is off, "
+                    + "the plugin will disable itself. See https://github.com/meigoc/DBetterModel");
         }
 
-        String version = plugin.getDescription().getVersion();
-        int major = 0;
-        int minor = 0;
-
+        String layerClass = selection.layerClass();
         try {
-            String cleanVersion = version.split("-")[0];
-            String[] parts = cleanVersion.split("\\.");
-            if (parts.length >= 2) {
-                major = Integer.parseInt(parts[0]);
-                minor = Integer.parseInt(parts[1]);
-            }
-        } catch (NumberFormatException e) {
-            System.out.println(ANSI_RED + "✖ Could not parse BetterModel version: " + version + ANSI_RESET);
-            return false;
-        }
-
-        if (major == 1 && minor == 15) {
-            System.out.println(ANSI_GREEN + "✔ Detected BetterModel version is fully supported." + ANSI_RESET);
-            return true;
-        } else if (major >= 2 || (major == 1 && minor >= 16)) {
-            System.out.println(ANSI_RED + "✖ This version of BetterModel is not supported due to API changes." + ANSI_RESET);
-            System.out.println(ANSI_RED + "For more info, contact the author or visit https://github.com/meigoc/DBetterModel" + ANSI_RESET);
-            return false;
-        } else {
-            System.out.println(ANSI_RED + "✖ This version is not supported by the current addon version." + ANSI_RESET);
-            System.out.println(ANSI_RED + "Please check our GitHub Readme for a suitable version. GitHub: https://github.com/meigoc/DBetterModel" + ANSI_RESET);
-            return false;
+            Class<?> clazz = Class.forName(layerClass);
+            BmPlatform loaded = (BmPlatform) clazz.getConstructor(Plugin.class).newInstance(this);
+            getLogger().info("Detected BetterModel " + version + " — using compat layer " + layerClass);
+            return loaded;
+        } catch (Throwable t) {
+            getLogger().severe("Failed to load compat layer " + layerClass + " for BetterModel "
+                    + version + ": " + t + " — disabling.");
+            return null;
         }
     }
 
     private void initMetrics() {
         Metrics metrics = new Metrics(this, BSTATS_ID);
-        metrics.addCustomChart(new Metrics.SimplePie("Denizen", () ->
-                Bukkit.getPluginManager().getPlugin("Denizen").getDescription().getVersion()));
-        metrics.addCustomChart(new Metrics.SimplePie("BetterModel", () ->
-                Bukkit.getPluginManager().getPlugin("BetterModel").getDescription().getVersion()));
+        metrics.addCustomChart(new Metrics.SimplePie("Denizen", () -> pluginVersion("Denizen")));
+        metrics.addCustomChart(new Metrics.SimplePie("BetterModel", () -> pluginVersion("BetterModel")));
+    }
+
+    private static String pluginVersion(String name) {
+        Plugin plugin = Bukkit.getPluginManager().getPlugin(name);
+        return plugin == null ? "unknown" : plugin.getDescription().getVersion();
     }
 
     private void runUpdateChecker() {
-        Bukkit.getScheduler().runTaskLaterAsynchronously(this, () -> {
+        Bukkit.getAsyncScheduler().runDelayed(this, task -> {
             try {
-                URL url = new URL("https://api.github.com/repos/meigoc/DBetterModel/releases");
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                connection.setRequestProperty("User-Agent", "DBetterModel-UpdateChecker");
-                connection.setConnectTimeout(5000);
-                connection.setReadTimeout(5000);
-
-                if (connection.getResponseCode() == 200) {
-                    StringBuilder response = new StringBuilder();
-                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            response.append(line);
-                        }
-                    }
-
-                    Pattern pattern = Pattern.compile("\"tag_name\"\\s*:\\s*\"([^\"]+)\"");
-                    Matcher matcher = pattern.matcher(response.toString());
-
-                    if (matcher.find()) {
-                        String latestTag = matcher.group(1);
-                        String cleanLatest = latestTag.toLowerCase().startsWith("v") ? latestTag.substring(1) : latestTag;
-
-                        if (!cleanLatest.equalsIgnoreCase(DBETTERMODEL_VERSION)) {
-                            Debug.log("Found a new version: " + latestTag);
-                            Debug.log("Download it on Modrinth: https://modrinth.com/plugin/dbettermodel");
-                        }
-                    }
+                HttpClient client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .followRedirects(HttpClient.Redirect.NORMAL)
+                        .build();
+                HttpRequest request = HttpRequest.newBuilder(
+                                URI.create("https://api.github.com/repos/meigoc/DBetterModel/releases/latest"))
+                        .header("User-Agent", "DBetterModel-UpdateChecker")
+                        .header("Accept", "application/vnd.github+json")
+                        .timeout(Duration.ofSeconds(5))
+                        .GET()
+                        .build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() != 200) {
+                    getLogger().info("Update check failed: GitHub responded with HTTP " + response.statusCode());
+                    return;
                 }
-            } catch (Exception ignored) {}
-        }, 1200L);
+                Matcher matcher = TAG_NAME.matcher(response.body());
+                if (!matcher.find()) {
+                    getLogger().info("Update check failed: no tag_name in the GitHub response.");
+                    return;
+                }
+                String latestTag = matcher.group(1);
+                if (Versions.isNewer(latestTag, version())) {
+                    Debug.log("Found a new version: " + latestTag);
+                    Debug.log("Download it on Modrinth: https://modrinth.com/plugin/dbettermodel");
+                }
+            } catch (Exception e) {
+                getLogger().info("Update check failed: " + e);
+            }
+        }, 60L, java.util.concurrent.TimeUnit.SECONDS);
     }
+
+    private static final Pattern TAG_NAME = Pattern.compile("\"tag_name\"\\s*:\\s*\"([^\"]+)\"");
 
     private void registerCommands() {
         tryRegister("BMModelCommand", () -> DenizenCore.commandRegistry.registerCommand(BMModelCommand.class));
@@ -173,6 +198,7 @@ public class DBetterModel extends JavaPlugin {
         tryRegister("BMLimbCommand", () -> DenizenCore.commandRegistry.registerCommand(BMLimbCommand.class));
         tryRegister("BMPartCommand", () -> DenizenCore.commandRegistry.registerCommand(BMPartCommand.class));
         tryRegister("BMMountCommand", () -> DenizenCore.commandRegistry.registerCommand(BMMountCommand.class));
+        tryRegister("BMSummonCommand", () -> DenizenCore.commandRegistry.registerCommand(BMSummonCommand.class));
     }
 
     private void registerObjects() {
@@ -184,11 +210,24 @@ public class DBetterModel extends JavaPlugin {
     private void registerEvents() {
         tryRegister("BMReloadStartEvent", () -> ScriptEvent.registerScriptEvent(BMReloadStartEvent.class));
         tryRegister("BMReloadEndEvent", () -> ScriptEvent.registerScriptEvent(BMReloadEndEvent.class));
+        tryRegister("BMTrackerCreatedEvent", () -> ScriptEvent.registerScriptEvent(BMTrackerCreatedEvent.class));
+        tryRegister("BMTrackerClosedEvent", () -> ScriptEvent.registerScriptEvent(BMTrackerClosedEvent.class));
+        tryRegister("BMModelSpawnEvent", () -> ScriptEvent.registerScriptEvent(BMModelSpawnEvent.class));
+        tryRegister("BMModelDespawnEvent", () -> ScriptEvent.registerScriptEvent(BMModelDespawnEvent.class));
+        tryRegister("BMAnimationSignalEvent", () -> ScriptEvent.registerScriptEvent(BMAnimationSignalEvent.class));
+        tryRegister("BMPlayerAnimationSignalEvent", () -> ScriptEvent.registerScriptEvent(BMPlayerAnimationSignalEvent.class));
+        tryRegister("BMAnimationStartEvent", () -> ScriptEvent.registerScriptEvent(BMAnimationStartEvent.class));
+        tryRegister("BMAnimationEndEvent", () -> ScriptEvent.registerScriptEvent(BMAnimationEndEvent.class));
+        tryRegister("BMHitboxDamagedEvent", () -> ScriptEvent.registerScriptEvent(BMHitboxDamagedEvent.class));
+        tryRegister("BMHitboxInteractedEvent", () -> ScriptEvent.registerScriptEvent(BMHitboxInteractedEvent.class));
+        tryRegister("BMModelMountedEvent", () -> ScriptEvent.registerScriptEvent(BMModelMountedEvent.class));
+        tryRegister("BMModelDismountedEvent", () -> ScriptEvent.registerScriptEvent(BMModelDismountedEvent.class));
     }
 
     private void registerExtensions() {
         tryRegister("DBetterModelEntityTagExtensions", DBetterModelEntityTagExtensions::register);
         tryRegister("DBetterModelPlayerTagExtensions", DBetterModelPlayerTagExtensions::register);
+        tryRegister("BMServerTags", BMServerTags::init);
     }
 
     private void tryRegister(String featureName, Runnable registrationLogic) {

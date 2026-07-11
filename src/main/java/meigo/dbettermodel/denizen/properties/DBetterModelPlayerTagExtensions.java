@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Meigo™ Corporation
+ * Copyright 2026 Meigo™ Corporation
  * SPDX-License-Identifier: MIT
  */
 
@@ -9,21 +9,19 @@ import com.denizenscript.denizen.objects.PlayerTag;
 import com.denizenscript.denizencore.objects.ObjectTag;
 import com.denizenscript.denizencore.objects.core.ElementTag;
 import com.denizenscript.denizencore.objects.core.MapTag;
-import kr.toxicity.model.api.BetterModel;
-import kr.toxicity.model.api.animation.RunningAnimation;
-import kr.toxicity.model.api.bone.RenderedBone;
-import kr.toxicity.model.api.data.blueprint.BlueprintAnimation;
-import kr.toxicity.model.api.data.renderer.ModelRenderer;
-import kr.toxicity.model.api.tracker.EntityTracker;
-import kr.toxicity.model.api.tracker.EntityTrackerRegistry;
+import meigo.dbettermodel.DBetterModel;
+import meigo.dbettermodel.compat.api.BmBone;
+import meigo.dbettermodel.compat.api.BmPlatform;
+import meigo.dbettermodel.compat.api.BmRunningAnimation;
+import meigo.dbettermodel.compat.api.BmTracker;
 import meigo.dbettermodel.denizen.objects.BMBoneTag;
 import org.bukkit.entity.Player;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class DBetterModelPlayerTagExtensions {
 
@@ -46,32 +44,26 @@ public class DBetterModelPlayerTagExtensions {
         //
         // @example
         // # Check for a specific animation on a specific limb model.
-        // - if <player.limb[player_gestures]> == wave:
-        //   - narrate "You are waving!"
+        // - if <player.limb[steve]> == roll:
+        //   - narrate "You are rolling!"
         // -->
         PlayerTag.tagProcessor.registerTag(ObjectTag.class, "limb", (attribute, object) -> {
             Player player = object.getPlayerEntity();
-            if (player == null) {
+            BmPlatform platform = DBetterModel.platform();
+            if (player == null || platform == null) {
                 return null;
             }
-            Optional<EntityTrackerRegistry> registryOpt = BetterModel.registry(player);
-            if (registryOpt.isEmpty()) {
-                return null;
-            }
-            EntityTrackerRegistry registry = registryOpt.get();
-            Set<String> limbModelNames = BetterModel.limbs().stream()
-                    .map(ModelRenderer::name)
-                    .collect(Collectors.toSet());
+            Set<String> limbModelNames = new HashSet<>(platform.limbNames());
             if (limbModelNames.isEmpty()) {
                 return null;
             }
-            List<EntityTracker> playerLimbTrackers = registry.trackers().stream()
+            List<BmTracker> playerLimbTrackers = platform.trackers(player).stream()
                     .filter(tracker -> limbModelNames.contains(tracker.name()))
                     .toList();
             if (playerLimbTrackers.isEmpty()) {
                 return null;
             }
-            EntityTracker targetTracker;
+            BmTracker targetTracker;
             if (attribute.hasContext(1)) {
                 String modelName = attribute.getContext(1);
                 targetTracker = playerLimbTrackers.stream()
@@ -84,15 +76,15 @@ public class DBetterModelPlayerTagExtensions {
             if (targetTracker == null) {
                 return null;
             }
-            RunningAnimation runningAnimation = targetTracker.getPipeline().runningAnimation();
-            if (runningAnimation!= null) {
+            Optional<BmRunningAnimation> running = targetTracker.runningAnimation();
+            if (running.isPresent()) {
+                BmRunningAnimation runningAnimation = running.get();
                 MapTag map = new MapTag();
                 map.putObject("animation_name", new ElementTag(runningAnimation.name()));
-                map.putObject("loop_mode", new ElementTag(runningAnimation.type().name().toLowerCase()));
+                map.putObject("loop_mode", new ElementTag(runningAnimation.rawTypeName().toLowerCase()));
 
-                Optional<BlueprintAnimation> blueprintOpt = targetTracker.renderer().animation(runningAnimation.name());
-                blueprintOpt.ifPresent(blueprint ->
-                        map.putObject("default_loop_mode", new ElementTag(blueprint.loop().name().toLowerCase()))
+                targetTracker.model().animationLoopMode(runningAnimation.name()).ifPresent(loop ->
+                        map.putObject("default_loop_mode", new ElementTag(loop.toLowerCase()))
                 );
                 return map;
             }
@@ -120,22 +112,22 @@ public class DBetterModelPlayerTagExtensions {
             }
             String modelName = attribute.getContext(1);
             Player player = object.getPlayerEntity();
-            if (player == null) {
+            BmPlatform platform = DBetterModel.platform();
+            if (player == null || platform == null) {
                 return null;
             }
 
-            if (BetterModel.limbs().stream().noneMatch(limb -> limb.name().equalsIgnoreCase(modelName))) {
+            if (platform.limbNames().stream().noneMatch(limb -> limb.equalsIgnoreCase(modelName))) {
                 attribute.echoError("Model '" + modelName + "' is not a valid player limb model.");
                 return null;
             }
 
-            return BetterModel.registry(player)
-                    .flatMap(registry -> Optional.ofNullable(registry.tracker(modelName)))
+            return platform.tracker(player, modelName)
                     .map(tracker -> {
                         MapTag map = new MapTag();
-                        UUID uuid = tracker.registry().uuid();
-                        for (RenderedBone bone : tracker.bones()) {
-                            map.putObject(bone.name().name(), new BMBoneTag(uuid, modelName, bone.name().name()));
+                        UUID uuid = tracker.entityUuid();
+                        for (BmBone bone : tracker.bones()) {
+                            map.putObject(bone.name(), new BMBoneTag(uuid, modelName, bone.name()));
                         }
                         return map;
                     }).orElse(null);

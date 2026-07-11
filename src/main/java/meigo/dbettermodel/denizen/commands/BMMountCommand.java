@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Meigo™ Corporation
+ * Copyright 2026 Meigo™ Corporation
  * SPDX-License-Identifier: MIT
  */
 
@@ -12,14 +12,12 @@ import com.denizenscript.denizencore.scripts.commands.generator.ArgDefaultNull;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgLinear;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgName;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgPrefixed;
-import kr.toxicity.model.api.BetterModel;
-import kr.toxicity.model.api.bone.RenderedBone;
-import kr.toxicity.model.api.nms.HitBox;
+import meigo.dbettermodel.DBetterModel;
+import meigo.dbettermodel.compat.api.BmBone;
+import meigo.dbettermodel.compat.api.BmPlatform;
 import meigo.dbettermodel.denizen.objects.BMBoneTag;
 import meigo.dbettermodel.util.DBMDebug;
 import org.bukkit.entity.Entity;
-
-import java.util.Optional;
 
 public class BMMountCommand extends AbstractCommand {
 
@@ -51,16 +49,21 @@ public class BMMountCommand extends AbstractCommand {
     //
     // @Usage
     // Use to make a player ride on the 'seat' bone of a model on an armor stand.
-    // - bmmount <player> on:<[my_armorstand].bm_entity.model[car].bone[seat]>
+    // - bmmount <player> on:<[stand].bm_entity.model[demon_knight].bone[seat]>
     //
     // @Usage
     // Use to dismount a specific player.
-    // - bmmount <player> on:<[my_armorstand].bm_entity.model[car].bone[seat]> dismount
+    // - bmmount <player> on:<[stand].bm_entity.model[demon_knight].bone[seat]> dismount
     //
     // @Usage
     // Use to dismount all entities from the seat.
-    // - bmmount on:<[my_armorstand].bm_entity.model[car].bone[seat]> dismount_all
+    // - bmmount on:<[stand].bm_entity.model[demon_knight].bone[seat]> dismount_all
     // -->
+
+    @Override
+    public void addCustomTabCompletions(TabCompletionsBuilder tab) {
+        tab.add("dismount", "dismount_all");
+    }
 
     public static void autoExecute(ScriptEntry scriptEntry,
                                    @ArgName("entity") @ArgDefaultNull @ArgLinear EntityTag entityToMount,
@@ -68,27 +71,30 @@ public class BMMountCommand extends AbstractCommand {
                                    @ArgName("dismount") boolean dismount,
                                    @ArgName("dismount_all") boolean dismountAll) {
 
+        BmPlatform platform = DBetterModel.platform();
+        if (platform == null) {
+            DBMDebug.error(scriptEntry, "DBetterModel compat layer is not available.");
+            return;
+        }
         if (onBone == null) {
             DBMDebug.error(scriptEntry, "You must specify a bone to mount on or dismount from.");
             return;
         }
-        RenderedBone bone = Optional.ofNullable(BetterModel.registryOrNull(onBone.getEntityUUID()))
-                .flatMap(registry -> Optional.ofNullable(registry.tracker(onBone.getModelName())))
-                .flatMap(tracker -> Optional.ofNullable(tracker.bone(onBone.getBoneName())))
+        BmBone bone = platform.tracker(onBone.getEntityUUID(), onBone.getModelName())
+                .flatMap(tracker -> tracker.bone(onBone.getBoneName()))
                 .orElse(null);
         if (bone == null) {
             DBMDebug.error(scriptEntry, "The specified bone tag is invalid or the model is not loaded.");
             return;
         }
-        HitBox hitBox = bone.getHitBox();
 
-        if (hitBox == null) {
+        if (!bone.hasHitBox()) {
             DBMDebug.error(scriptEntry, "The bone '" + onBone.getBoneName() + "' is not a seat or does not have a hitbox. Make sure the bone is tagged with 'p' (e.g., 'p_seat').");
             return;
         }
 
         if (dismountAll) {
-            hitBox.dismountAll();
+            bone.dismountAll();
             DBMDebug.approval(scriptEntry, "Dismounted all entities from bone '" + onBone.getBoneName() + "'.");
             return;
         }
@@ -100,12 +106,11 @@ public class BMMountCommand extends AbstractCommand {
         Entity entity = entityToMount.getBukkitEntity();
 
         if (dismount) {
-            hitBox.dismount(entity);
+            bone.dismount(entity);
             DBMDebug.approval(scriptEntry, "Dismounted " + entity.getName() + " from bone '" + onBone.getBoneName() + "'.");
         } else {
-            hitBox.mount(entity);
+            bone.mount(entity);
             DBMDebug.approval(scriptEntry, "Mounted " + entity.getName() + " on bone '" + onBone.getBoneName() + "'.");
         }
     }
 }
-

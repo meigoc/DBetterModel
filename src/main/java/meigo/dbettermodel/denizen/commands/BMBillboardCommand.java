@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Meigo™ Corporation
+ * Copyright 2026 Meigo™ Corporation
  * SPDX-License-Identifier: MIT
  */
 
@@ -11,11 +11,15 @@ import com.denizenscript.denizencore.scripts.ScriptEntry;
 import com.denizenscript.denizencore.scripts.commands.AbstractCommand;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgName;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgPrefixed;
-import kr.toxicity.model.api.BetterModel;
-import kr.toxicity.model.api.util.function.BonePredicate;
+import meigo.dbettermodel.DBetterModel;
+import meigo.dbettermodel.compat.api.BmBone;
+import meigo.dbettermodel.compat.api.BmPlatform;
+import meigo.dbettermodel.compat.api.BmTracker;
 import meigo.dbettermodel.util.DBMDebug;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
+
+import java.util.List;
 
 public class BMBillboardCommand extends AbstractCommand {
 
@@ -43,8 +47,17 @@ public class BMBillboardCommand extends AbstractCommand {
     //
     // @Usage
     // Use to make a 'head' bone always face the player.
-    // - bmboard entity:<context.entity> model:my_mob bone:head type:center
+    // - bmboard entity:<context.entity> model:demon_knight bone:head type:center
     // -->
+
+    @Override
+    public void addCustomTabCompletions(TabCompletionsBuilder tab) {
+        BmPlatform platform = DBetterModel.platform();
+        if (platform != null) {
+            tab.addWithPrefix("model:", platform.modelNames());
+        }
+        tab.addWithPrefix("type:", List.of("fixed", "vertical", "horizontal", "center"));
+    }
 
     public static void autoExecute(ScriptEntry scriptEntry,
                                    @ArgName("entity") @ArgPrefixed EntityTag entityTag,
@@ -52,6 +65,11 @@ public class BMBillboardCommand extends AbstractCommand {
                                    @ArgName("bone") @ArgPrefixed ElementTag boneName,
                                    @ArgName("type") @ArgPrefixed ElementTag type) {
 
+        BmPlatform platform = DBetterModel.platform();
+        if (platform == null) {
+            DBMDebug.error(scriptEntry, "DBetterModel compat layer is not available.");
+            return;
+        }
         Entity entity = entityTag.getBukkitEntity();
         Display.Billboard billboardType;
         try {
@@ -61,25 +79,26 @@ public class BMBillboardCommand extends AbstractCommand {
             return;
         }
 
-        BetterModel.registry(entity).ifPresentOrElse(registry -> {
-            var tracker = registry.tracker(modelName.asString());
-            if (tracker == null) {
-                DBMDebug.error(scriptEntry, "Model '" + modelName.asString() + "' not found on entity.");
-                return;
-            }
+        if (!platform.isModeled(entity)) {
+            DBMDebug.error(scriptEntry, "Entity does not have any models.");
+            return;
+        }
+        BmTracker tracker = platform.tracker(entity, modelName.asString()).orElse(null);
+        if (tracker == null) {
+            DBMDebug.error(scriptEntry, "Model '" + modelName.asString() + "' not found on entity.");
+            return;
+        }
 
-            var bone = tracker.bone(boneName.asString());
-            if (bone == null) {
-                DBMDebug.error(scriptEntry, "Bone '" + boneName.asString() + "' not found on model '" + modelName.asString() + "'.");
-                return;
-            }
+        BmBone bone = tracker.bone(boneName.asString()).orElse(null);
+        if (bone == null) {
+            DBMDebug.error(scriptEntry, "Bone '" + boneName.asString() + "' not found on model '" + modelName.asString() + "'.");
+            return;
+        }
 
-            if (bone.applyAtDisplay(BonePredicate.TRUE, display -> display.billboard(billboardType))) {
-                tracker.forceUpdate(true);
-                DBMDebug.approval(scriptEntry, "Set billboard type of bone '" + boneName.asString() + "' to '" + type.asString() + "'.");
-            } else {
-                DBMDebug.error(scriptEntry, "Failed to set billboard for bone '" + boneName.asString() + "'. It might be a dummy bone without a display.");
-            }
-        }, () -> DBMDebug.error(scriptEntry, "Entity does not have any models."));
+        if (bone.setBillboard(billboardType)) {
+            DBMDebug.approval(scriptEntry, "Set billboard type of bone '" + boneName.asString() + "' to '" + type.asString() + "'.");
+        } else {
+            DBMDebug.error(scriptEntry, "Failed to set billboard for bone '" + boneName.asString() + "'. It might be a dummy bone without a display.");
+        }
     }
 }

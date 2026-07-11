@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Meigo™ Corporation
+ * Copyright 2026 Meigo™ Corporation
  * SPDX-License-Identifier: MIT
  */
 
@@ -40,15 +40,14 @@ public class DBMDebug {
     }
 
     /**
-     * Outputs an error message if debugging is enabled for the ScriptEntry.
+     * Outputs an error message. Errors always reach the console — the script debug flag
+     * only controls verbosity elsewhere (5.x tech-debt item 7).
      *
-     * @param entry   The current ScriptEntry.
+     * @param entry   The current ScriptEntry (unused for gating, kept for call-site context).
      * @param message The error message.
      */
     public static void error(ScriptEntry entry, String message) {
-        if (entry != null && entry.shouldDebug()) {
-            Debug.echoError(message);
-        }
+        Debug.echoError(message);
     }
 
     /**

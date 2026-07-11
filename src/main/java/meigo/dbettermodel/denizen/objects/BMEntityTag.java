@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Meigo™ Corporation
+ * Copyright 2026 Meigo™ Corporation
  * SPDX-License-Identifier: MIT
  */
 
@@ -15,10 +15,10 @@ import com.denizenscript.denizencore.tags.ObjectTagProcessor;
 import com.denizenscript.denizencore.tags.TagContext;
 import com.denizenscript.denizencore.utilities.CoreUtilities;
 import com.denizenscript.denizencore.utilities.debugging.Debug;
-import kr.toxicity.model.api.BetterModel;
-import kr.toxicity.model.api.entity.BaseBukkitEntity;
-import kr.toxicity.model.api.tracker.EntityTracker;
-import kr.toxicity.model.api.tracker.EntityTrackerRegistry;
+import meigo.dbettermodel.DBetterModel;
+import meigo.dbettermodel.compat.api.BmPlatform;
+import meigo.dbettermodel.compat.api.BmTracker;
+import org.bukkit.entity.Entity;
 
 import java.util.Optional;
 
@@ -55,22 +55,23 @@ public class BMEntityTag implements ObjectTag, Adjustable {
         EntityTag entity = EntityTag.valueOf(uuidPart, context);
         if (entity == null || entity.getBukkitEntity() == null) return null;
 
-        Optional<EntityTrackerRegistry> registryOpt = BetterModel.registry(entity.getBukkitEntity());
-        return registryOpt.map(BMEntityTag::new).orElse(null);
+        BmPlatform platform = DBetterModel.platform();
+        if (platform == null || !platform.isModeled(entity.getBukkitEntity())) return null;
+        return new BMEntityTag(entity.getBukkitEntity());
     }
 
     public static boolean matches(String arg) {
         return arg != null && CoreUtilities.toLowerCase(arg).startsWith(PREFIX + "@");
     }
 
-    private final EntityTrackerRegistry registry;
+    private final Entity entity;
 
-    public BMEntityTag(EntityTrackerRegistry registry) {
-        this.registry = registry;
+    public BMEntityTag(Entity entity) {
+        this.entity = entity;
     }
 
-    public EntityTrackerRegistry getRegistry() {
-        return registry;
+    public Entity getEntity() {
+        return entity;
     }
 
     private String prefix = PREFIX;
@@ -82,11 +83,11 @@ public class BMEntityTag implements ObjectTag, Adjustable {
 
     @Override
     public String identify() {
-        return PREFIX + "@" + registry.entity().uuid();
+        return PREFIX + "@" + entity.getUniqueId();
     }
 
     @Override public String identifySimple() { return identify(); }
-    @Override public Object getJavaObject() { return registry; }
+    @Override public Object getJavaObject() { return entity; }
     @Override public String toString() { return identify(); }
 
     public static final ObjectTagProcessor<BMEntityTag> tagProcessor = new ObjectTagProcessor<>();
@@ -100,7 +101,7 @@ public class BMEntityTag implements ObjectTag, Adjustable {
         // Returns the base Bukkit entity.
         // -->
         tagProcessor.registerTag(EntityTag.class, "base_entity", (attr, obj) ->
-                new EntityTag(((BaseBukkitEntity) obj.getRegistry().entity()).entity())
+                new EntityTag(obj.getEntity())
         );
 
         // <--[tag]
@@ -112,20 +113,23 @@ public class BMEntityTag implements ObjectTag, Adjustable {
         // If no name is provided, returns the first model loaded on the entity.
         // -->
         tagProcessor.registerTag(BMModelTag.class, "model", (attr, obj) -> {
-            EntityTracker tracker;
+            BmPlatform platform = DBetterModel.platform();
+            if (platform == null) return null;
+            BmTracker tracker;
             if (attr.hasContext(1)) {
                 String modelName = attr.getContext(1);
-                tracker = obj.getRegistry().tracker(modelName);
+                tracker = platform.tracker(obj.getEntity(), modelName).orElse(null);
                 if (tracker == null) {
                     attr.echoError("The entity does not have a model named '" + modelName + "'.");
                     return null;
                 }
             } else {
-                tracker = obj.getRegistry().first();
-                if (tracker == null) {
+                Optional<BmTracker> first = platform.trackers(obj.getEntity()).stream().findFirst();
+                if (first.isEmpty()) {
                     attr.echoError("The entity has a model registry but no models are currently loaded.");
                     return null;
                 }
+                tracker = first.get();
             }
             return new BMModelTag(tracker);
         });

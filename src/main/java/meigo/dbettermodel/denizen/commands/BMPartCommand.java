@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Meigo™ Corporation
+ * Copyright 2026 Meigo™ Corporation
  * SPDX-License-Identifier: MIT
  */
 
@@ -12,21 +12,13 @@ import com.denizenscript.denizencore.scripts.ScriptEntry;
 import com.denizenscript.denizencore.scripts.commands.AbstractCommand;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgName;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgPrefixed;
-import kr.toxicity.model.api.BetterModel;
-import kr.toxicity.model.api.bone.BoneRenderContext;
-import kr.toxicity.model.api.bone.RenderedBone;
-import kr.toxicity.model.api.data.renderer.RenderSource;
-import kr.toxicity.model.api.manager.SkinManager;
-import kr.toxicity.model.api.player.PlayerLimb;
-import kr.toxicity.model.api.profile.ModelProfile;
-import kr.toxicity.model.api.tracker.EntityTracker;
 import meigo.dbettermodel.DBetterModel;
+import meigo.dbettermodel.compat.api.BmPlatform;
+import meigo.dbettermodel.compat.api.BmPlayerLimbs;
 import meigo.dbettermodel.util.DBMDebug;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
-import java.util.Arrays;
 import java.util.Optional;
 
 public class BMPartCommand extends AbstractCommand {
@@ -49,18 +41,18 @@ public class BMPartCommand extends AbstractCommand {
     // This command dynamically maps a bone of a model to a part of a player's skin.
     // The model's bone will then render using the texture and shape of the specified player's skin part.
     // This is the correct way to apply player skins to models, as it allows BetterModel's engine to handle skin fetching and caching.
+    // See also the BMBoneTag 'skin' mechanism — the same operation as a bone adjust.
     //
     // @Usage
-    // Use to make the 'head' bone of a statue model display the head of the player 'Notch'.
-    // - bmpart entity:<[statue_entity]> model:statue_model bone:head part:head from:Notch
+    // Use to make the 'head' bone of the demon_knight model display the head of the player 'Notch'.
+    // - bmpart entity:<[knight_entity]> model:demon_knight bone:head part:head from:Notch
     // -->
 
     @Override
     public void addCustomTabCompletions(TabCompletionsBuilder tab) {
-        if (tab.arg.startsWith("part:")) {
-            tab.add(Arrays.stream(PlayerLimb.values())
-                    .map(limb -> limb.name().toLowerCase())
-                    .toList());
+        BmPlatform platform = DBetterModel.platform();
+        if (platform != null && tab.arg.startsWith("part:")) {
+            tab.add(platform.playerLimbs().skinPartNames());
         }
     }
 
@@ -71,56 +63,30 @@ public class BMPartCommand extends AbstractCommand {
                                    @ArgName("part") @ArgPrefixed ElementTag partName,
                                    @ArgName("from") @ArgPrefixed PlayerTag fromPlayer) {
 
+        BmPlatform platform = DBetterModel.platform();
+        if (platform == null) {
+            DBMDebug.error(scriptEntry, "DBetterModel compat layer is not available.");
+            return;
+        }
         Entity entity = entityTag.getBukkitEntity();
         Player sourcePlayer = fromPlayer.getPlayerEntity();
         if (entity == null || sourcePlayer == null) {
             DBMDebug.error(scriptEntry, "Target entity or source player not found.");
             return;
         }
-        ModelProfile sourceProfile = BetterModel.plugin().nms().profile(sourcePlayer);
-        SkinManager skinManager = BetterModel.plugin().skinManager();
-        skinManager.complete(sourceProfile.asUncompleted()).thenAccept(skinData -> {
 
-            Bukkit.getScheduler().runTask(DBetterModel.getInstance(), () -> {
-
-                Entity currentEntity = entityTag.getBukkitEntity();
-                Player currentPlayer = fromPlayer.getPlayerEntity();
-                if (currentEntity == null || currentPlayer == null) return;
-
-                Optional<EntityTracker> trackerOpt = BetterModel.registry(currentEntity)
-                        .flatMap(registry -> Optional.ofNullable(registry.tracker(modelName.asString())));
-
-                if (trackerOpt.isEmpty()) {
-                    DBMDebug.error(scriptEntry, "Model '" + modelName.asString() + "' not found on the entity.");
-                    return;
-                }
-                EntityTracker tracker = trackerOpt.get();
-
-                RenderedBone bone = tracker.bone(boneName.asString());
-                if (bone == null || bone.getDisplay() == null) {
-                    DBMDebug.error(scriptEntry, "Bone '" + boneName.asString() + "' not found or is a dummy bone.");
-                    return;
-                }
-
-                PlayerLimb targetLimb;
-                try {
-                    targetLimb = PlayerLimb.valueOf(partName.asString().toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    DBMDebug.error(scriptEntry, "Invalid part name: '" + partName.asString() + "'.");
-                    return;
-                }
-
-                var adaptedSource = BetterModel.plugin().nms().adapt(currentPlayer);
-                BoneRenderContext playerContext = new BoneRenderContext(RenderSource.of(adaptedSource), skinData);
-
-                bone.setItemMapper(targetLimb.getItemMapper());
-                bone.updateItem(playerContext);
-
-                tracker.forceUpdate(true);
-
-                DBMDebug.approval(scriptEntry, "Successfully applied skin part '" + partName.asString() + "' from " + fromPlayer.getName() + " to bone '" + boneName.asString() + "'.");
-            });
-
+        platform.playerLimbs().applySkinPart(
+                () -> Optional.ofNullable(entityTag.getBukkitEntity()),
+                modelName.asString(), boneName.asString(), partName.asString(), sourcePlayer
+        ).thenAccept(result -> {
+            switch (result) {
+                case SUCCESS -> DBMDebug.approval(scriptEntry, "Successfully applied skin part '" + partName.asString()
+                        + "' from " + fromPlayer.getName() + " to bone '" + boneName.asString() + "'.");
+                case MODEL_NOT_FOUND -> DBMDebug.error(scriptEntry, "Model '" + modelName.asString() + "' not found on the entity.");
+                case BONE_NOT_FOUND -> DBMDebug.error(scriptEntry, "Bone '" + boneName.asString() + "' not found or is a dummy bone.");
+                case INVALID_PART -> DBMDebug.error(scriptEntry, "Invalid part name: '" + partName.asString() + "'.");
+                case TARGET_GONE -> { /* target vanished mid-flight — 5.x was silent here */ }
+            }
         }).exceptionally(e -> {
             DBMDebug.error(scriptEntry, "Failed to load skin for " + fromPlayer.getName() + ": " + e.getMessage());
             return null;

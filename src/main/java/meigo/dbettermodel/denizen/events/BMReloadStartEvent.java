@@ -1,16 +1,13 @@
 /*
- * Copyright 2025 Meigo™ Corporation
+ * Copyright 2026 Meigo™ Corporation
  * SPDX-License-Identifier: MIT
  */
 
 package meigo.dbettermodel.denizen.events;
 
 import com.denizenscript.denizen.events.BukkitScriptEvent;
-import kr.toxicity.model.api.event.PluginStartReloadEvent;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
 
-public class BMReloadStartEvent extends BukkitScriptEvent implements Listener {
+public class BMReloadStartEvent extends BukkitScriptEvent {
 
     // <--[event]
     // @Events
@@ -24,7 +21,10 @@ public class BMReloadStartEvent extends BukkitScriptEvent implements Listener {
     //
     // -->
 
+    public static BMReloadStartEvent instance;
+
     public BMReloadStartEvent() {
+        instance = this;
         registerCouldMatcher("bm starts reload");
     }
 
@@ -33,8 +33,10 @@ public class BMReloadStartEvent extends BukkitScriptEvent implements Listener {
         return super.matches(path);
     }
 
-    @EventHandler
-    public void onBetterModelStartReload(PluginStartReloadEvent e) {
-        fire(e);
+    /** Fired by the compat event sink. */
+    public static void handle() {
+        if (instance != null) {
+            instance.fire();
+        }
     }
 }

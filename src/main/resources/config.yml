@@ -1,3 +1,9 @@
 options:
   enable-plugin-logging: true
   check-for-updates: true
+
+# Experimental features — see EXPERIMENTAL.md in the repository.
+experimental:
+  # Blockbench keyframe 'denizen:run{script=knight_strike;key=value}' starts the named
+  # Denizen task script directly, with the metadata as definitions.
+  keyframe-script-bridge: true

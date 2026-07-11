@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Meigo™ Corporation
+ * Copyright 2026 Meigo™ Corporation
  * SPDX-License-Identifier: MIT
  */
 
@@ -13,10 +13,10 @@ import com.denizenscript.denizencore.scripts.commands.generator.ArgDefaultNull;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgDefaultText;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgName;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgPrefixed;
-import kr.toxicity.model.api.BetterModel;
-import kr.toxicity.model.api.animation.AnimationIterator;
-import kr.toxicity.model.api.animation.AnimationModifier;
-import kr.toxicity.model.api.util.function.BooleanConstantSupplier;
+import meigo.dbettermodel.DBetterModel;
+import meigo.dbettermodel.compat.api.BmAnimationOptions;
+import meigo.dbettermodel.compat.api.BmPlatform;
+import meigo.dbettermodel.compat.api.BmTracker;
 import meigo.dbettermodel.util.DBMDebug;
 import org.bukkit.entity.Player;
 
@@ -53,25 +53,30 @@ public class BMLimbCommand extends AbstractCommand {
     //
     // @Usage
     // To make a player perform a 'roll' animation once.
-    // - bmlimb target:<player> model:player_base animation:roll
+    // - bmlimb target:<player> model:steve animation:roll
     //
     // @Usage
-    // To make a player perform a repeating 'dance' animation.
-    // - bmlimb target:<player> model:player_gestures animation:dance loop:loop
+    // To make a player perform a repeating 'roll' animation.
+    // - bmlimb target:<player> model:steve animation:roll loop:loop
     //
     // @Usage
-    // To make player_1 wave, but hide their model from player_2.
-    // - bmlimb target:<[player_1]> model:player_base animation:wave hide:<[player_2]>
+    // To animate player_1, but hide their model from player_2.
+    // - bmlimb target:<[player_1]> model:steve animation:roll hide:<[player_2]>
     // -->
 
     @Override
     public void addCustomTabCompletions(TabCompletionsBuilder tab) {
-        tab.addWithPrefix("model:", BetterModel.limbs().stream().map(m -> m.name()).toList());
+        BmPlatform platform = DBetterModel.platform();
+        if (platform == null) {
+            return;
+        }
+        tab.addWithPrefix("model:", platform.limbNames());
         tab.addWithPrefix("loop:", List.of("once", "loop", "hold"));
 
         if (tab.arg.toLowerCase().startsWith("animation:")) {
             Set<String> allAnimations = new HashSet<>();
-            BetterModel.limbs().forEach(model -> allAnimations.addAll(model.animations().keySet()));
+            platform.limbNames().forEach(name ->
+                    platform.limb(name).ifPresent(model -> allAnimations.addAll(model.animations())));
             tab.add(allAnimations);
         }
     }
@@ -83,6 +88,11 @@ public class BMLimbCommand extends AbstractCommand {
                                    @ArgName("loop") @ArgDefaultText("once") @ArgPrefixed ElementTag loopMode,
                                    @ArgName("hide") @ArgPrefixed @ArgDefaultNull PlayerTag hideForPlayer) {
 
+        BmPlatform platform = DBetterModel.platform();
+        if (platform == null) {
+            DBMDebug.error(scriptEntry, "DBetterModel compat layer is not available.");
+            return;
+        }
         Player player = playerTag.getPlayerEntity();
         if (player == null) {
             DBMDebug.error(scriptEntry, "Player not found.");
@@ -91,29 +101,33 @@ public class BMLimbCommand extends AbstractCommand {
 
         String model = modelName.asString();
         String animation = animationName.asString();
-        if (BetterModel.limbOrNull(model) == null) {
+        if (platform.limb(model).isEmpty()) {
             DBMDebug.error(scriptEntry, "Limb animator model '" + model + "' not found. Make sure it is configured under 'player-animations'.");
             return;
         }
 
-        AnimationIterator.Type type = switch (loopMode.asString().toLowerCase().trim()) {
-            case "loop" -> AnimationIterator.Type.LOOP;
-            case "hold" -> AnimationIterator.Type.HOLD_ON_LAST;
-            default -> AnimationIterator.Type.PLAY_ONCE;
+        BmAnimationOptions.LoopMode type = switch (loopMode.asString().toLowerCase().trim()) {
+            case "loop" -> BmAnimationOptions.LoopMode.LOOP;
+            case "hold" -> BmAnimationOptions.LoopMode.HOLD;
+            default -> BmAnimationOptions.LoopMode.ONCE;
         };
 
-        AnimationModifier modifier = AnimationModifier.builder()
-                .predicate(BooleanConstantSupplier.TRUE)
-                .start(0)
-                .end(0)
-                .type(type)
+        BmAnimationOptions options = BmAnimationOptions.builder()
+                .lerpTicks(0)
+                .loopMode(type)
                 .speed(1.0f)
                 .build();
 
-        boolean success = BetterModel.plugin().modelManager().animate(player, model, animation, modifier);
+        boolean success = platform.playerLimbs().playLimbAnimation(player, model, animation, options);
 
+        // 5.x printed the BetterModel iterator type name here (play_once/loop/hold_on_last).
+        String modeName = switch (type) {
+            case LOOP -> "loop";
+            case HOLD -> "hold_on_last";
+            default -> "play_once";
+        };
         if (success) {
-            DBMDebug.approval(scriptEntry, "Started player animation '" + animation + "' from model '" + model + "' on " + player.getName() + " with mode '" + type.name().toLowerCase() + "'.");
+            DBMDebug.approval(scriptEntry, "Started player animation '" + animation + "' from model '" + model + "' on " + player.getName() + " with mode '" + modeName + "'.");
         } else {
             DBMDebug.error(scriptEntry, "Failed to start animation '" + animation + "'. It might not exist in the model '" + model + "'.");
         }
@@ -123,10 +137,13 @@ public class BMLimbCommand extends AbstractCommand {
             if (observer == null) {
                 DBMDebug.error(scriptEntry, "Observer player for 'hide' argument not found.");
             } else {
-                BetterModel.registry(player).ifPresentOrElse(registry -> {
-                    registry.trackers().forEach(tracker -> tracker.hide(observer));
+                List<BmTracker> trackers = platform.trackers(player);
+                if (trackers.isEmpty()) {
+                    DBMDebug.error(scriptEntry, "Target player " + player.getName() + " has no models to hide.");
+                } else {
+                    trackers.forEach(tracker -> tracker.hide(observer));
                     DBMDebug.approval(scriptEntry, "Hid " + player.getName() + "'s models from " + observer.getName() + ".");
-                }, () -> DBMDebug.error(scriptEntry, "Target player " + player.getName() + " has no models to hide."));
+                }
             }
         }
     }

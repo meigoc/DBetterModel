@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Meigo™ Corporation
+ * Copyright 2026 Meigo™ Corporation
  * SPDX-License-Identifier: MIT
  */
 
@@ -11,11 +11,10 @@ import com.denizenscript.denizencore.scripts.ScriptEntry;
 import com.denizenscript.denizencore.scripts.commands.AbstractCommand;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgName;
 import com.denizenscript.denizencore.scripts.commands.generator.ArgPrefixed;
-import kr.toxicity.model.api.BetterModel;
+import meigo.dbettermodel.DBetterModel;
+import meigo.dbettermodel.compat.api.BmPlatform;
 import meigo.dbettermodel.util.DBMDebug;
 import org.bukkit.entity.Entity;
-
-import java.util.Optional;
 
 public class BMModelCommand extends AbstractCommand {
 
@@ -41,16 +40,19 @@ public class BMModelCommand extends AbstractCommand {
     //
     // @Usage
     // Use to add a model to an entity.
-    // - bmmodel entity:<context.entity> model:my_model
+    // - bmmodel entity:<context.entity> model:demon_knight
     //
     // @Usage
     // Use to remove a model from an entity.
-    // - bmmodel entity:<context.entity> model:my_model remove
+    // - bmmodel entity:<context.entity> model:demon_knight remove
     // -->
 
     @Override
     public void addCustomTabCompletions(TabCompletionsBuilder tab) {
-        tab.addWithPrefix("model:", BetterModel.models().stream().map(m -> m.name()).toList());
+        BmPlatform platform = DBetterModel.platform();
+        if (platform != null) {
+            tab.addWithPrefix("model:", platform.modelNames());
+        }
     }
 
     public static void autoExecute(ScriptEntry scriptEntry,
@@ -58,6 +60,11 @@ public class BMModelCommand extends AbstractCommand {
                                    @ArgName("model") @ArgPrefixed ElementTag model,
                                    @ArgName("remove") boolean remove) {
 
+        BmPlatform platform = DBetterModel.platform();
+        if (platform == null) {
+            DBMDebug.error(scriptEntry, "DBetterModel compat layer is not available.");
+            return;
+        }
         Entity entity = entityTag.getBukkitEntity();
         if (model == null) {
             DBMDebug.error(scriptEntry, "Model is not specified.");
@@ -65,23 +72,20 @@ public class BMModelCommand extends AbstractCommand {
         }
         String modelName = model.asString();
         if (remove) {
-            BetterModel.registry(entity).ifPresentOrElse(registry -> {
-                if (registry.remove(modelName)) {
-                    DBMDebug.approval(scriptEntry, "Model '" + modelName + "' removed from entity.");
-                } else {
-                    DBMDebug.error(scriptEntry, "Model '" + modelName + "' not found on entity.");
-                }
-            }, () -> {
+            if (!platform.isModeled(entity)) {
                 DBMDebug.error(scriptEntry, "Entity does not have any models.");
-            });
+                return;
+            }
+            if (platform.removeModel(entity, modelName)) {
+                DBMDebug.approval(scriptEntry, "Model '" + modelName + "' removed from entity.");
+            } else {
+                DBMDebug.error(scriptEntry, "Model '" + modelName + "' not found on entity.");
+            }
             return;
         }
 
-        Optional.ofNullable(BetterModel.plugin().modelManager().renderer(modelName)).ifPresentOrElse(
-                renderer -> {
-                    renderer.create(entity);
-                    DBMDebug.approval(scriptEntry, "Model '" + modelName + "' added to entity.");
-                },
+        platform.attach(entity, modelName).ifPresentOrElse(
+                tracker -> DBMDebug.approval(scriptEntry, "Model '" + modelName + "' added to entity."),
                 () -> DBMDebug.error(scriptEntry, "Model renderer '" + modelName + "' not found.")
         );
     }

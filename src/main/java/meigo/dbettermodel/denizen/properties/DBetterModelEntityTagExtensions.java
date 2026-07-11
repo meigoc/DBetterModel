@@ -1,12 +1,13 @@
 /*
- * Copyright 2025 Meigo™ Corporation
+ * Copyright 2026 Meigo™ Corporation
  * SPDX-License-Identifier: MIT
  */
 
 package meigo.dbettermodel.denizen.properties;
 
 import com.denizenscript.denizen.objects.EntityTag;
-import kr.toxicity.model.api.BetterModel;
+import meigo.dbettermodel.DBetterModel;
+import meigo.dbettermodel.compat.api.BmPlatform;
 import meigo.dbettermodel.denizen.objects.BMEntityTag;
 
 public class DBetterModelEntityTagExtensions {
@@ -21,10 +22,12 @@ public class DBetterModelEntityTagExtensions {
         // This provides access to all models and their properties on the entity.
         // Returns null if the entity has no models.
         // -->
-        EntityTag.tagProcessor.registerTag(BMEntityTag.class, "bm_entity", (attribute, entity) ->
-                BetterModel.registry(entity.getBukkitEntity())
-                        .map(BMEntityTag::new)
-                        .orElse(null)
-        );
+        EntityTag.tagProcessor.registerTag(BMEntityTag.class, "bm_entity", (attribute, entity) -> {
+            BmPlatform platform = DBetterModel.platform();
+            if (platform == null || !platform.isModeled(entity.getBukkitEntity())) {
+                return null;
+            }
+            return new BMEntityTag(entity.getBukkitEntity());
+        });
     }
 }

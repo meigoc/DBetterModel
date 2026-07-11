@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Meigo™ Corporation
+ * Copyright 2026 Meigo™ Corporation
  * SPDX-License-Identifier: MIT
  */
 
@@ -46,13 +46,24 @@ public class BoneMechanismHandler {
         handlers.put("billboard", this::handleBillboard);
     }
 
-    public void handle(BoneController controller, Mechanism mechanism) {
-        BiConsumer<BoneController, Mechanism> handler = handlers.get(mechanism.getName());
+    /** Whether the named mechanism targets bones. */
+    public boolean isBoneMechanism(String name) {
+        return handlers.containsKey(name);
+    }
 
-        if (handler != null) {
-            handler.accept(controller, mechanism);
-            mechanism.fulfill();
+    /**
+     * Applies the mechanism to the controller. Does NOT fulfill — the caller decides,
+     * so a mechanism fans out over many bones but fulfills exactly once (tech-debt item 4).
+     *
+     * @return true if a handler existed for the mechanism
+     */
+    public boolean handle(BoneController controller, Mechanism mechanism) {
+        BiConsumer<BoneController, Mechanism> handler = handlers.get(mechanism.getName());
+        if (handler == null) {
+            return false;
         }
+        handler.accept(controller, mechanism);
+        return true;
     }
 
     private void handleTint(BoneController controller, Mechanism mechanism) {
