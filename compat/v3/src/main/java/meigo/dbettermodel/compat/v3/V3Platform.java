@@ -9,6 +9,8 @@ import kr.toxicity.model.api.BetterModel;
 import kr.toxicity.model.api.bone.RenderedBone;
 import kr.toxicity.model.api.bukkit.platform.BukkitAdapter;
 import kr.toxicity.model.api.data.renderer.ModelRenderer;
+import kr.toxicity.model.api.manager.ModelManager;
+import kr.toxicity.model.api.manager.ScriptManager;
 import kr.toxicity.model.api.script.AnimationScript;
 import kr.toxicity.model.api.tracker.DummyTracker;
 import kr.toxicity.model.api.tracker.EntityTracker;
@@ -45,7 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
- * Compat layer for BetterModel 3.x (compiled against 3.2.0). Loaded reflectively by the
+ * Compat layer for BetterModel 3.x (compiled against 3.3.0). Loaded reflectively by the
  * bootstrap via {@code Class.forName(...).getConstructor(Plugin.class)}; the constructor
  * touches the key 3.x entry points so it throws on incompatible lines (4.x best-effort probe).
  */
@@ -84,7 +86,7 @@ public final class V3Platform implements BmPlatform {
 
     public V3Platform(Plugin ownPlugin) {
         // Fail fast on lines without the 3.x entry points; the bootstrap catches Throwable.
-        BetterModel.platform().modelManager();
+        V3Managers.get(ModelManager.class, "modelManager");
         BetterModel.eventBus();
         this.ownPlugin = ownPlugin;
         this.playerLimbs = new V3PlayerLimbs(this, ownPlugin);
@@ -175,7 +177,7 @@ public final class V3Platform implements BmPlatform {
 
     @Override
     public Optional<BmTracker> attach(Entity entity, String model) {
-        ModelRenderer renderer = BetterModel.platform().modelManager().model(model);
+        ModelRenderer renderer = V3Managers.get(ModelManager.class, "modelManager").model(model);
         if (renderer == null) return Optional.empty();
         return Optional.of(new V3Tracker(this, renderer.create(BukkitAdapter.adapt(entity))));
     }
@@ -247,7 +249,7 @@ public final class V3Platform implements BmPlatform {
         // builder is registered once and routes through the mutable sink field, nulled on shutdown.
         if (!signalBuilderRegistered) {
             signalBuilderRegistered = true;
-            BetterModel.platform().scriptManager().addBuilder("denizen", data -> {
+            V3Managers.get(ScriptManager.class, "scriptManager").addBuilder("denizen", data -> {
                 String signal = data.args() == null ? "" : data.args();
                 Map<String, String> metadata = data.metadata().toMap();
                 return AnimationScript.of(true, tracker -> {

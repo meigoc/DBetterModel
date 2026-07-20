@@ -31,7 +31,7 @@ Up to 5.0 I shipped one DBetterModel release per BetterModel version. BetterMode
 
 | BetterModel | DBetterModel |
 |---|---|
-| 1.15.x / 2.0.x–2.2.x / 3.x | **6.0.0 (single jar)** |
+| 1.15.x / 2.0.x–2.2.x / 3.x | **6.1.0 (single jar)** |
 
 Historical table for pre-6.0 users:
 

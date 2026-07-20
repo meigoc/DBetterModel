@@ -10,6 +10,7 @@ import kr.toxicity.model.api.bone.BoneRenderContext;
 import kr.toxicity.model.api.bone.RenderedBone;
 import kr.toxicity.model.api.bukkit.platform.BukkitAdapter;
 import kr.toxicity.model.api.data.renderer.RenderSource;
+import kr.toxicity.model.api.manager.ModelManager;
 import kr.toxicity.model.api.manager.SkinManager;
 import kr.toxicity.model.api.player.PlayerLimb;
 import kr.toxicity.model.api.profile.ModelProfile;
@@ -39,7 +40,7 @@ final class V3PlayerLimbs implements BmPlayerLimbs {
 
     @Override
     public boolean playLimbAnimation(Player player, String limbModel, String animation, BmAnimationOptions options) {
-        boolean started = BetterModel.platform().modelManager().animate(BukkitAdapter.adapt(player), limbModel, animation,
+        boolean started = V3Managers.get(ModelManager.class, "modelManager").animate(BukkitAdapter.adapt(player), limbModel, animation,
                 V3Tracker.modifierOf(options).build());
         if (started) {
             // The tracker registers synchronously but its pipeline only reports the animation
@@ -65,7 +66,7 @@ final class V3PlayerLimbs implements BmPlayerLimbs {
         // kept in sync with SkinsRestorer (SkinApplyEvent). Unlike of(uuid) this never
         // forces BM's HTTP profile supplier, which NPEs on offline/unknown UUIDs.
         ModelProfile.Uncompleted sourceProfile = ModelProfile.of(BukkitAdapter.adapt(source)).asUncompleted();
-        SkinManager skinManager = BetterModel.platform().skinManager();
+        SkinManager skinManager = V3Managers.get(SkinManager.class, "skinManager");
         CompletableFuture<SkinPartResult> future = new CompletableFuture<>();
         // Snapshot the entity before going async so the callback can land on its region
         // thread (Folia); the supplier is re-checked inside the scheduled task.

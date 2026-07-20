@@ -47,6 +47,8 @@ class LayerSelectorTest {
     void threeSelectsV3() {
         assertEquals(V3, LayerSelector.select("3.0.0").layerClass());
         assertEquals(V3, LayerSelector.select("3.2.1").layerClass());
+        assertEquals(V3, LayerSelector.select("3.3.0").layerClass());
+        assertFalse(LayerSelector.select("3.3.0").bestEffort());
     }
 
     @Test
